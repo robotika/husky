@@ -65,16 +65,16 @@ def main( com ):
       uptime, numMeas = struct.unpack( "=IB", data[:5] )
       data = data[5:]
       assert numMeas == 3, numMeas
-      volt1, volt2, volt3, numMeas = struct.unpack( "HHHB", data[:6+1] )
+      volt1, volt2, volt3, numMeas = struct.unpack( "hhhB", data[:6+1] )
       data = data[6+1:]
-      print volt1, volt2, volt3, "|",
+      print volt1/100., volt2/100., volt3/100., "|",
       assert numMeas == 3, numMeas
-      cur1, cur2, cur3, numMeas = struct.unpack( "HHHB", data[:6+1] )
+      cur1, cur2, cur3, numMeas = struct.unpack( "hhhB", data[:6+1] )
       data = data[6+1:]
-      print cur1, cur2, cur3, "|",
+      print cur1/100., cur2/100., cur3/100., "|",
       assert numMeas == 4, numMeas
-      t1, t2, t3, t4 = struct.unpack( "HHHH", data )
-      print t1, t2, t3, t4
+      t1, t2, t3, t4 = struct.unpack( "hhhh", data )
+      print t1/100., t2/100., t3/100., t4/100.
 
 
 
