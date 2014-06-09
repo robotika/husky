@@ -60,6 +60,24 @@ def main( com ):
   robot.sendPacket( REQ_PLATFORM_INFO )
   for i in xrange(200):
     timestamp, msgType, data = robot.readPacket()
+    if msgType == 0x8004:
+      # System status data
+      uptime, numMeas = struct.unpack( "=IB", data[:5] )
+      data = data[5:]
+      assert numMeas == 3, numMeas
+      volt1, volt2, volt3, numMeas = struct.unpack( "HHHB", data[:6+1] )
+      data = data[6+1:]
+      print volt1, volt2, volt3, "|",
+      assert numMeas == 3, numMeas
+      cur1, cur2, cur3, numMeas = struct.unpack( "HHHB", data[:6+1] )
+      data = data[6+1:]
+      print cur1, cur2, cur3, "|",
+      assert numMeas == 4, numMeas
+      t1, t2, t3, t4 = struct.unpack( "HHHH", data )
+      print t1, t2, t3, t4
+
+
+
     if msgType == 0x8005:
       # Power system status data
       batNum, batState, batCap, batDesc = struct.unpack("=BHHB", data )
