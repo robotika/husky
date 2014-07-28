@@ -86,6 +86,10 @@ def main( com ):
       assert batNum == 1, batNum
       assert batDesc == 0xC2, hex(batDesc) # present, in use, Lead-acid battery
       print batState, batCap
+    if msgType == 0x8800:
+      # Encoder data
+      enc = struct.unpack( "=Biihh", data ) # expected 2 encoders - position and speed
+      print "ENC", enc
     
 
 if __name__ == "__main__":
