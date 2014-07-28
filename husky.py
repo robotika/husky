@@ -12,6 +12,9 @@ from logit import *
 from crc16 import ccitt_checksum as checksum
 
 REQ_PLATFORM_INFO = 0x4001
+REQ_FIRMWARE_INFO = 0x4003
+
+SET_DIFFERENTIAL_OUTPUT = 0x0202
 
 class Husky:
   def __init__( self, com ):
@@ -19,11 +22,11 @@ class Husky:
     self.timestamp = 0
 
   def sendPacket( self, messageType, data = "" ):
-    packet = struct.pack( 'BBBBIBHB',
+    packet = struct.pack( '=BBBBIBHB',
     0xAA,           # SAH
-    len(data),      # data length + compliment
-    255-len(data),
-    1,              # version
+    len(data)+11,   # data length + compliment
+    255-len(data)-11,
+    0,              # version (in doc is used version 1, but sample code sends 0)
     self.timestamp, # unique number for ACK
     0,              # flags
     messageType,    # 16bit
@@ -57,7 +60,9 @@ class Husky:
 def main( com ):
 
   robot = Husky( com )
-  robot.sendPacket( REQ_PLATFORM_INFO )
+#  robot.sendPacket( REQ_PLATFORM_INFO )
+#  robot.sendPacket( REQ_FIRMWARE_INFO, data=struct.pack("H",0) )
+  robot.sendPacket( SET_DIFFERENTIAL_OUTPUT, data=struct.pack("hh", 3000, 3000) )
   for i in xrange(200):
     timestamp, msgType, data = robot.readPacket()
     if msgType == 0x8004:
@@ -75,9 +80,6 @@ def main( com ):
       assert numMeas == 4, numMeas
       t1, t2, t3, t4 = struct.unpack( "hhhh", data )
       print t1/100., t2/100., t3/100., t4/100.
-
-
-
     if msgType == 0x8005:
       # Power system status data
       batNum, batState, batCap, batDesc = struct.unpack("=BHHB", data )
