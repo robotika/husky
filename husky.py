@@ -20,6 +20,8 @@ class Husky:
   def __init__( self, com ):
     self.com = com
     self.timestamp = 0
+    self.cmdSpeed = (0, 0)
+    self.enc = None
 
   def sendPacket( self, messageType, data = "" ):
     packet = struct.pack( '=BBBBIBHB',
@@ -57,8 +59,17 @@ class Husky:
     return timestamp, msgType, ret[9:-2]
 
 
-def main( com ):
+  def update( self ):
+    self.sendPacket( SET_DIFFERENTIAL_OUTPUT, data=struct.pack("hh", self.cmdSpeed[0], self.cmdSpeed[1]) )
+    for i in xrange(200):
+      timestamp, msgType, data = self.readPacket()
+      if msgType == 0x8800: # Encoder data
+        self.enc = struct.unpack( "=Biihh", data ) # expected 2 encoders - position and speed
+        print "ENC", self.enc
+        break
 
+
+def main0( com ):
   robot = Husky( com )
 #  robot.sendPacket( REQ_PLATFORM_INFO )
 #  robot.sendPacket( REQ_FIRMWARE_INFO, data=struct.pack("H",0) )
@@ -91,6 +102,18 @@ def main( com ):
       enc = struct.unpack( "=Biihh", data ) # expected 2 encoders - position and speed
       print "ENC", enc
     
+
+
+def main( com ):
+  "slow motion for 25cm (after reseting encoders)"
+  robot = Husky( com )
+  robot.cmdSpeed = (1000, 1000)
+  for i in xrange(1000):
+    robot.update()
+    if robot.enc and robot.enc[1] > 250:
+      break
+  robot.cmdSpeed = (0, 0)
+  robot.update()
 
 if __name__ == "__main__":
   if len(sys.argv) < 2:
