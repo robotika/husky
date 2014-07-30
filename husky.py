@@ -11,10 +11,19 @@ import struct
 from logit import *
 from crc16 import ccitt_checksum as checksum
 
+PROTOCOL_VERSION = 1
+
 REQ_PLATFORM_INFO = 0x4001
 REQ_FIRMWARE_INFO = 0x4003
+REQ_MAX_SPEED = 0x4210
+REQ_MAX_ACCEL = 0x4211
+REQ_GPIO = 0x4301
+REQ_PLATFORM_ORIENTATION = 0x4600
+REQ_PLATFORM_MAGNETOMETERS = 0x4606  # not supported
+
 
 SET_DIFFERENTIAL_OUTPUT = 0x0202
+
 
 class Husky:
   def __init__( self, com ):
@@ -22,20 +31,21 @@ class Husky:
     self.timestamp = 0
     self.cmdSpeed = (0, 0)
     self.enc = None
+    self.config()
 
   def sendPacket( self, messageType, data = "" ):
     packet = struct.pack( '=BBBBIBHB',
     0xAA,           # SAH
     len(data)+11,   # data length + compliment
     255-len(data)-11,
-    0,              # version (in doc is used version 1, but sample code sends 0)
+    PROTOCOL_VERSION,  # version (in doc is used version 1, but sample code sends 0)
     self.timestamp, # unique number for ACK
     0,              # flags
     messageType,    # 16bit
     0x55 )          # STX - data start
     packet += data
     packet += struct.pack("H", checksum( [ord(x) for x in packet] ))
-    print repr(packet)
+#    print repr(packet)
     self.timestamp += 1
     self.com.write( packet )
 
@@ -58,14 +68,27 @@ class Husky:
     assert stx == 0x55, stx
     return timestamp, msgType, ret[9:-2]
 
+  def config( self ):
+    self.sendPacket( REQ_PLATFORM_MAGNETOMETERS, data=struct.pack("h", 10 ) ) # at 10Hz    
+    self.sendPacket( REQ_FIRMWARE_INFO, data=struct.pack("h", 0 ) ) # once
+    self.sendPacket( REQ_MAX_SPEED, data=struct.pack("h", 0 ) ) # once
+    self.sendPacket( REQ_MAX_ACCEL, data=struct.pack("h", 0 ) ) # once
+    self.sendPacket( REQ_GPIO, data=struct.pack("h", 0 ) ) # once
+    self.sendPacket( REQ_PLATFORM_ORIENTATION, data=struct.pack("h", 10 ) ) # 10Hz
+
 
   def update( self ):
     self.sendPacket( SET_DIFFERENTIAL_OUTPUT, data=struct.pack("hh", self.cmdSpeed[0], self.cmdSpeed[1]) )
     for i in xrange(200):
       timestamp, msgType, data = self.readPacket()
+      print hex(msgType)
+      if msgType & 0xF000 == 0x4000: # confirmations
+        print hex(msgType), [hex(ord(x)) for x in data]
+      if msgType in [0x8210, 0x8211, 0x8003 ]:
+        print hex(msgType), [hex(ord(x)) for x in data]
       if msgType == 0x8800: # Encoder data
         self.enc = struct.unpack( "=Biihh", data ) # expected 2 encoders - position and speed
-        print "ENC", self.enc
+#        print "ENC", self.enc
         break
 
 
@@ -104,7 +127,7 @@ def main0( com ):
     
 
 
-def main( com ):
+def testMotion( com ):
   "slow motion for 25cm (after reseting encoders)"
   robot = Husky( com )
   robot.cmdSpeed = (1000, 1000)
@@ -114,6 +137,14 @@ def main( com ):
       break
   robot.cmdSpeed = (0, 0)
   robot.update()
+
+
+def testConfig( com ):
+  "sensor configuration should be in Husky constructor - make sure you receive the data"
+  robot = Husky( com )
+  for i in xrange(10):
+    robot.update()
+
 
 if __name__ == "__main__":
   if len(sys.argv) < 2:
@@ -135,5 +166,5 @@ if __name__ == "__main__":
       com = ReplayLog( filename, assertWrite=replayAssert )
   else:
     com = LogIt( serial.Serial( '/dev/ttyUSB1', 115200 ) )
-  main( com )
+  testConfig( com )
 
