@@ -42,6 +42,14 @@ caller_id = "/hello_test_client"
 topic = "/hello"
 topic_type = "std_msgs/String"
 caller_api = MY_CLIENT_URI # for "publisherUpdate"
+
+code, statusMessage, topicTypes = master.getTopicTypes(caller_id)
+assert code == 1, code
+print "---"
+print "topicTypes:"
+print topicTypes
+print "---"
+
 code, statusMessage, publishers = master.registerSubscriber(caller_id, topic, topic_type, caller_api)
 assert code == 1, code
 assert len(publishers) == 1, publishers # i.e. fails if publisher is not ready now
