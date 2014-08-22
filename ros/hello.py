@@ -47,10 +47,11 @@ assert code == 1, code
 assert len(publishers) == 1, publishers # i.e. fails if publisher is not ready now
 
 publisher = ServerProxy( publishers[0].replace("martind-ThinkPad-R60", "192.168.33.105") ) # "pseudo DNS"
-print publisher.requestTopic( caller_id, topic, [["TCPROS"]] )
+code, statusMessage, protocolParams = publisher.requestTopic( caller_id, topic, [["TCPROS"]] )
+assert code == 1, code
+assert len(protocolParams) == 3, protocolParams
 
-hostPortPair = ( "192.168.33.105", 49065 )
-#hostPortPair = ( "martind-ThinkPad-R60", 49065 )
+hostPortPair = ( "192.168.33.105", protocolParams[2] )
 soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # TCP
 
 
