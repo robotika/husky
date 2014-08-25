@@ -27,6 +27,8 @@ class Tcpros:
     def __init__( self, filename ):
         self.f = open(filename, "rb")
         self.topicType = splitLenStr(self.readMsg())
+        for s in self.topicType:
+            print s
 
     def readMsg( self ):
         data = self.f.read(4)
@@ -49,6 +51,15 @@ class Tcpros:
         assert len(data) == 0, len(data)
         return orientation
 
+    def parseEncoders( self, data ):
+        seq, stamp, stampNsec, frameIdLen = struct.unpack("IIII", data[:16])
+        print seq, stamp, stampNsec, frameIdLen
+        assert frameIdLen == 0, frameIdLen
+        data = data[16+frameIdLen:]
+        arrLen, travelL,speedL, travelR,speedR = struct.unpack("=Idddd", data)
+        assert arrLen==2, arrLen
+        return (travelL,speedL), (travelR,speedR)
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -59,7 +70,8 @@ if __name__ == "__main__":
         m = t.readMsg()
         if m == None:
             break
-        print t.parseImu(m)
+#        print t.parseImu(m)
+        print t.parseEncoders(m)
         print "--------------"
 
 
