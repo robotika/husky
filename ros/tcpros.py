@@ -60,6 +60,14 @@ class Tcpros:
         assert arrLen==2, arrLen
         return (travelL,speedL), (travelR,speedR)
 
+    def parsePower( self, data ):
+        seq, stamp, stampNsec, frameIdLen = struct.unpack("IIII", data[:16])
+        print seq, stamp, stampNsec, frameIdLen
+        assert frameIdLen == 0, frameIdLen
+        data = data[16+frameIdLen:]
+        arrLen, charge, capacity, present, inUse, description = struct.unpack("=Ifh??B", data)
+        assert arrLen==1, arrLen
+        return charge
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -71,7 +79,8 @@ if __name__ == "__main__":
         if m == None:
             break
 #        print t.parseImu(m)
-        print t.parseEncoders(m)
+#        print t.parseEncoders(m)
+        print t.parsePower(m)
         print "--------------"
 
 
