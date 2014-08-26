@@ -8,10 +8,10 @@
 # terminalA:   roscore
 # terminalB:   rostopic pub /hello std_msgs/String "Hello Robot"
 
-#ROS_MASTER_URI = 'http://192.168.0.13:11311'
-ROS_MASTER_URI = 'http://192.168.1.11:11311'
+ROS_MASTER_URI = 'http://192.168.0.13:11311'
+#ROS_MASTER_URI = 'http://192.168.1.11:11311'
 
-MY_CLIENT_URI = 'http://192.168.33.100:8000'
+MY_CLIENT_URI = 'http://192.168.0.12:8000'
 
 from xmlrpclib import ServerProxy
 import socket
@@ -40,14 +40,12 @@ for s in systemState[0]:
   print s
 
 caller_id = "/hello_test_client"
-#topic, topic_type, md5 = "/hello", "std_msgs/String", '992ce8a1687cec8c8bd883ec73ca41d1'
-#topic = "/imu/data"
-#topic = "/husky/data/encoders"
-#topic_type = "std_msgs/Imu"
-#topic_type = "clearpath_base/Encoders", 
+topic, topic_type, md5 = "/hello", "std_msgs/String", '992ce8a1687cec8c8bd883ec73ca41d1'
+#topic, topic_type, md5 = "/imu/data", "std_msgs/Imu", "6a62c6daae103f4ff57a132d6f95cec2"
+#topic, topic_type, md5 = "/husky/data/encoders", "clearpath_base/Encoders", '2ea748832c2014369ffabd316d5aad8c'
 #topic, topic_type, md5 = "/husky/data/power_status", 'clearpath_base/PowerStatus', 'f246c359530c58415aee4fe89d1aca04'
 #topic, topic_type, md5 = '/husky/data/safety_status', 'clearpath_base/SafetyStatus', 'cf78d6042b92d64ebda55641e06d66fa'
-topic, topic_type, md5 = '/joy', 'sensor_msgs/Joy', '5a9ea5f83505693b71e785041e67a8bb'
+#topic, topic_type, md5 = '/joy', 'sensor_msgs/Joy', '5a9ea5f83505693b71e785041e67a8bb'
 
 caller_api = MY_CLIENT_URI # for "publisherUpdate"
 
@@ -68,10 +66,11 @@ publisher = ServerProxy( publishers[0].replace("martind-ThinkPad-R60", "192.168.
 code, statusMessage, protocolParams = publisher.requestTopic( caller_id, topic, [["TCPROS"]] )
 assert code == 1, code
 assert len(protocolParams) == 3, protocolParams
+print code, statusMessage, protocolParams
 
 print protocolParams
-#hostPortPair = ( "192.168.33.105", protocolParams[2] )
-hostPortPair = ( protocolParams[1], protocolParams[2] )
+hostPortPair = ( "192.168.0.13", protocolParams[2] )
+#hostPortPair = ( protocolParams[1], protocolParams[2] )
 soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # TCP
 
 
@@ -79,15 +78,12 @@ soc.connect( hostPortPair )
 soc.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 soc.setblocking(0)
 
-soc.settimeout( 30.0 )
+soc.settimeout( 3.0 )
 
 header = prefix4BytesLen(
         prefix4BytesLen( "callerid=/hello_test_client" ) +
         prefix4BytesLen( "topic="+topic ) +
         prefix4BytesLen( "type="+topic_type ) +
-#        prefix4BytesLen( "md5sum=992ce8a1687cec8c8bd883ec73ca41d1" ) + # hello
-#        prefix4BytesLen( "md5sum=6a62c6daae103f4ff57a132d6f95cec2" ) + # imu
-#        prefix4BytesLen( "md5sum=2ea748832c2014369ffabd316d5aad8c" ) + # Encoders
         prefix4BytesLen( "md5sum="+md5 ) +
         "" )
 
