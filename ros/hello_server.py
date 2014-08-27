@@ -2,9 +2,8 @@ import xmlrpclib
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 
 def publisherUpdate(caller_id, topic, publishers):
-#def publisherUpdate( data ):
-    print "called 'publisherUpdate' with", data
-    return (1, "Hi", 42)
+    print "called 'publisherUpdate' with", (caller_id, topic, publishers)
+    return (1, "Hi, I am fine", 42) # (code, statusMessage, ignore) 
 
 def requestTopic(caller_id, topic, publishers):
     print "REQ", (caller_id, topic, publishers)
