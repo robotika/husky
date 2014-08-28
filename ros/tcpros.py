@@ -7,6 +7,7 @@
 import socket
 import struct
 import sys
+import datetime
 
 def prefix4BytesLen( s ):
     "adding ROS length"
@@ -21,66 +22,49 @@ def splitLenStr( data ):
         data = data[size:]
     return ret
 
+class LoggedStream:
+    def __init__( self, readFn, prefix ):
+        self.readFn = readFn
+        dt = datetime.datetime.now()
+        filename = prefix + dt.strftime("%y%m%d_%H%M%S.log") 
+        self.logFile = open( filename, "wb" )
+        print "LogIt:", filename 
+    
+    def read( self, num ):
+        data = self.readFn( num )
+        self.logFile.write( data )
+        self.logFile.flush()
+        return data
 
 class Tcpros:
     "TCPROS communication protocol"
-    def __init__( self, filename ):
-        self.f = open(filename, "rb")
+    def __init__( self, readFn ):
+        self.readFn = readFn
         self.topicType = splitLenStr(self.readMsg())
         for s in self.topicType:
             print s
 
     def readMsg( self ):
-        data = self.f.read(4)
+        data = self.readFn(4)
         if len(data) == 0:
             return None
         size = struct.unpack("I", data)[0]
-        return self.f.read( size )
-
-    def parseImu( self, data ):
-        seq, stamp, stampNsec, frameIdLen = struct.unpack("IIII", data[:16])
-        print seq, stamp, stampNsec, frameIdLen
-        print data[16:16+frameIdLen]
-        data = data[16+frameIdLen:]
-        orientation = struct.unpack("dddd", data[:4*8])
-        data = data[4*8+9*8:] # skip covariance matrix
-        angularVelocity = struct.unpack("ddd", data[:3*8])
-        data = data[3*8+9*8:] # skip velocity covariance
-        linearAcceleration = struct.unpack("ddd", data[:3*8])
-        data = data[3*8+9*8:] # skip velocity covariance
-        assert len(data) == 0, len(data)
-        return orientation
-
-    def parseEncoders( self, data ):
-        seq, stamp, stampNsec, frameIdLen = struct.unpack("IIII", data[:16])
-        print seq, stamp, stampNsec, frameIdLen
-        assert frameIdLen == 0, frameIdLen
-        data = data[16+frameIdLen:]
-        arrLen, travelL,speedL, travelR,speedR = struct.unpack("=Idddd", data)
-        assert arrLen==2, arrLen
-        return (travelL,speedL), (travelR,speedR)
-
-    def parsePower( self, data ):
-        seq, stamp, stampNsec, frameIdLen = struct.unpack("IIII", data[:16])
-        print seq, stamp, stampNsec, frameIdLen
-        assert frameIdLen == 0, frameIdLen
-        data = data[16+frameIdLen:]
-        arrLen, charge, capacity, present, inUse, description = struct.unpack("=Ifh??B", data)
-        assert arrLen==1, arrLen
-        return charge
+        return self.readFn( size )
 
 if __name__ == "__main__":
+    from msgs import *
     if len(sys.argv) < 2:
         print __doc__
         sys.exit(1) 
-    t = Tcpros( sys.argv[1] )
+    t = Tcpros( open(sys.argv[1], "rb").read )
     while 1:
         m = t.readMsg()
         if m == None:
             break
 #        print t.parseImu(m)
 #        print t.parseEncoders(m)
-        print t.parsePower(m)
+#        print t.parsePower(m)
+        print parseString(m)
         print "--------------"
 
 
