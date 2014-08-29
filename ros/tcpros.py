@@ -37,7 +37,9 @@ class LoggedStream:
         except socket.timeout as e:
             print e # it should contain partial data            
         except socket.error as (errno, errStr):
-            assert errno == 10035, (errno, errStr) # i.e. not 'A non-blocking socket operation could not be completed immediately'
+            assert errno in [10035,11], (errno, errStr) 
+               # Windows 'A non-blocking socket operation could not be completed immediately'
+               # Linux (11, 'Resource temporarily unavailable')
             data = ""
         self.logFile.write( data )
         self.logFile.flush()
