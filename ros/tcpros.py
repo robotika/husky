@@ -35,7 +35,7 @@ class LoggedStream:
         try:
             data = self.readFn( 4096 )
         except socket.timeout as e:
-            print e # it should contain partial data            
+            assert False, e # it should contain partial data            
         except socket.error as (errno, errStr):
             assert errno in [10035,11], (errno, errStr) 
                # Windows 'A non-blocking socket operation could not be completed immediately'
