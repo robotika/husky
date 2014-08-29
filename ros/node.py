@@ -1,6 +1,8 @@
 """
   Python code imitating ROS node (both publisher and subscriber)
   targeted to control Husky platform.
+  usage:
+      ./node.py <node IP> <master IP>
 """
 
 # for test run on server:
@@ -11,10 +13,12 @@
 SOCKET_TIMEOUT = 0.0
 
 #ROS_MASTER_URI = 'http://192.168.1.11:11311'
-ROS_MASTER_URI = 'http://192.168.0.13:11311'
+#ROS_MASTER_URI = 'http://192.168.0.13:11311'
+ROS_MASTER_URI = None
 
 #NODE_HOST, NODE_PORT = ("192.168.1.42", 8000)
-NODE_HOST, NODE_PORT = ("192.168.0.12", 8000)
+#NODE_HOST, NODE_PORT = ("192.168.0.12", 8000)
+NODE_HOST, NODE_PORT = (None, 8000)
 
 from xmlrpclib import ServerProxy
 from SimpleXMLRPCServer import SimpleXMLRPCServer
@@ -110,9 +114,11 @@ def testNode():
     node.update()
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
+    if len(sys.argv) < 3:
         print __doc__
         sys.exit(1)
+    NODE_HOST = sys.argv[1]
+    ROS_MASTER_URI = 'http://'+sys.argv[2]+':11311'
     testNode()
 
 #-------------------------------------------------------------------
