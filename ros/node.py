@@ -27,6 +27,7 @@ import socket
 import struct
 import sys
 import time
+import datetime
 
 from threading import Thread
 
@@ -59,6 +60,9 @@ class MyXMLRPCServer( Thread ):
 
 class NodeROS:
     def __init__( self, subscribe=[], publish=[] ):
+        dt = datetime.datetime.now()
+        filename = "meta" + dt.strftime("%y%m%d_%H%M%S.log") 
+        self.metalog = open( filename, "wb" )
         self.callerId = '/node_test_ros' # TODO combination host/port?
         self.callerApi = "http://"+NODE_HOST+":%d" % NODE_PORT
         print "STARTING", self.callerId, "at", self.callerApi # TODO logging instead
@@ -70,7 +74,15 @@ class NodeROS:
 
     def lookupTopicType( self, topic ):
         # TODO separate msgs.py with types and md5
-        return { '/hello': ("std_msgs/String", '992ce8a1687cec8c8bd883ec73ca41d1', parseString) }[topic]
+        tab = { 
+                '/hello': ("std_msgs/String", '992ce8a1687cec8c8bd883ec73ca41d1', parseString),
+                '/imu/data': ("std_msgs/Imu", "6a62c6daae103f4ff57a132d6f95cec2", parseImu),
+                '/husky/data/encoders': ("clearpath_base/Encoders", '2ea748832c2014369ffabd316d5aad8c', parseEncoders),
+                '/husky/data/power_status': ('clearpath_base/PowerStatus', 'f246c359530c58415aee4fe89d1aca04', parsePower),
+                '/husky/data/safety_status': ('clearpath_base/SafetyStatus', 'cf78d6042b92d64ebda55641e06d66fa', parseNone), # TODO
+                '/joy': ('sensor_msgs/Joy', '5a9ea5f83505693b71e785041e67a8bb', parseNone), # TODO
+              }       
+        return tab[topic]
 
     def requestTopic( self, topic ):
         code, statusMessage, publishers = self.master.registerSubscriber(self.callerId, topic, self.lookupTopicType(topic)[0], self.callerApi)
@@ -104,14 +116,22 @@ class NodeROS:
             for topic,soc in self.sockets.items():
                 m = soc.readMsg()
                 if m != None:
+                    self.metalog.write( topic + '\n' )
+                    self.metalog.flush()
                     print topic
                     print self.lookupTopicType(topic)[2]( m )
                     atLeastOne = True
 
 
-def testNode():
+def testNode1():
     node = NodeROS( subscribe=['/hello'])
     node.update()
+
+def testNode():
+    node = NodeROS( subscribe=['/imu/data', '/husky/data/encoders', '/husky/data/power_status',
+        '/husky/data/safety_status', '/joy'])
+    for i in xrange(1000):
+        node.update()
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:

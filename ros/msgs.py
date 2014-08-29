@@ -4,6 +4,10 @@
 
 import struct
 
+def parseNone( data ):
+    "dummy parser"
+    return len(data)
+
 def parseString( data ):
     n = struct.unpack("I", data[:4])[0]
     return data[4:4+n]
