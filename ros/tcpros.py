@@ -29,22 +29,49 @@ class LoggedStream:
         filename = prefix + dt.strftime("%y%m%d_%H%M%S.log") 
         self.logFile = open( filename, "wb" )
         print "LogIt:", filename 
+        self.buf = ""
     
-    def read( self, num ):
-        data = self.readFn( num )
+    def readMsg( self ):
+        try:
+            data = self.readFn( 4096 )
+        except socket.timeout as e:
+            print e # it should contain partial data            
+        except socket.error as (errno, errStr):
+            assert errno == 10035, (errno, errStr) # i.e. not 'A non-blocking socket operation could not be completed immediately'
+            data = ""
         self.logFile.write( data )
         self.logFile.flush()
-        return data
+        self.buf += data
+        if len(self.buf) >= 4:
+            num = struct.unpack("I", self.buf[:4])[0]
+            if len(self.buf) >= 4 + num:
+                data = self.buf[4:4+num]
+                self.buf = self.buf[4+num:]
+                return data
+        return None
+
 
 class Tcpros:
     "TCPROS communication protocol"
-    def __init__( self, readFn ):
+    def __init__( self, readFn=None, readMsgFn=None ):
         self.readFn = readFn
-        self.topicType = splitLenStr(self.readMsg())
-        for s in self.topicType:
-            print s
+        self.readMsgFn = readMsgFn
+        self.topicType = None
 
     def readMsg( self ):
+        "skip very first message - topic description"
+        if self.topicType == None:
+            m = self._readMsg()
+            if m != None:
+                self.topicType = splitLenStr(m)
+                for s in self.topicType:
+                    print s
+            return None
+        return self._readMsg()
+
+    def _readMsg( self ):
+        if self.readMsgFn:
+            return self.readMsgFn()
         data = self.readFn(4)
         if len(data) == 0:
             return None

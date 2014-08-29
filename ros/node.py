@@ -8,7 +8,7 @@
 # terminalB:   rostopic pub /hello std_msgs/String "Hello Robot"
 # terminalC:   rostopic echo /hello
 
-SOCKET_TIMEOUT = 3.0
+SOCKET_TIMEOUT = 0.0
 
 #ROS_MASTER_URI = 'http://192.168.1.11:11311'
 ROS_MASTER_URI = 'http://192.168.0.13:11311'
@@ -62,7 +62,7 @@ class NodeROS:
         self.master = ServerProxy( ROS_MASTER_URI )
         self.sockets = {}
         for topic in subscribe:
-            self.sockets[topic] = Tcpros( LoggedStream( self.requestTopic( topic ).recv, prefix=topic.replace('/','_') ).read )
+            self.sockets[topic] = Tcpros( readMsgFn=LoggedStream( self.requestTopic( topic ).recv, prefix=topic.replace('/','_') ).readMsg )
 
     def lookupTopicType( self, topic ):
         # TODO separate msgs.py with types and md5
@@ -93,10 +93,16 @@ class NodeROS:
         soc.send( header )
         return soc
 
+
     def update( self ):
-        for topic,soc in self.sockets.items():
-            print topic
-            print self.lookupTopicType(topic)[2]( soc.readMsg() )
+        atLeastOne = False
+        while not atLeastOne:
+            for topic,soc in self.sockets.items():
+                m = soc.readMsg()
+                if m != None:
+                    print topic
+                    print self.lookupTopicType(topic)[2]( m )
+                    atLeastOne = True
 
 
 def testNode():
