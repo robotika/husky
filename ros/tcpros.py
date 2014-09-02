@@ -23,8 +23,9 @@ def splitLenStr( data ):
     return ret
 
 class LoggedStream:
-    def __init__( self, readFn, prefix ):
+    def __init__( self, readFn=None, writeFn=None, prefix="" ):
         self.readFn = readFn
+        self.writeFn = writeFn
         dt = datetime.datetime.now()
         filename = prefix + dt.strftime("%y%m%d_%H%M%S.log") 
         self.logFile = open( filename, "wb" )
@@ -52,6 +53,12 @@ class LoggedStream:
                 return data
         return None
 
+    def writeMsg( self, msg ):
+        data = prefix4BytesLen( msg )
+        self.logFile.write( data )
+        self.logFile.flush()
+        self.writeFn( data )
+
 
 class Tcpros:
     "TCPROS communication protocol"
@@ -68,6 +75,7 @@ class Tcpros:
                 self.topicType = splitLenStr(m)
                 for s in self.topicType:
                     print s
+                return self._readMsg()
             return None
         return self._readMsg()
 
@@ -93,7 +101,9 @@ if __name__ == "__main__":
 #        print t.parseImu(m)
 #        print t.parseEncoders(m)
 #        print t.parsePower(m)
-        print parseString(m)
+#        print parseString(m)
+#        print parseJoy(m)
+        print parseSafety(m)
         print "--------------"
 
 

@@ -69,8 +69,8 @@ assert len(protocolParams) == 3, protocolParams
 print code, statusMessage, protocolParams
 
 print protocolParams
-hostPortPair = ( "192.168.0.13", protocolParams[2] )
-#hostPortPair = ( protocolParams[1], protocolParams[2] )
+#hostPortPair = ( "192.168.0.13", protocolParams[2] )
+hostPortPair = ( protocolParams[1], protocolParams[2] )
 soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # TCP
 
 

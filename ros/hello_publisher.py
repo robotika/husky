@@ -11,14 +11,14 @@
 # ... here we will try to imitate node from terminalB
 
 
-#ROS_MASTER_URI = 'http://192.168.0.13:11311'
-ROS_MASTER_URI = 'http://192.168.1.11:11311'
+ROS_MASTER_URI = 'http://192.168.0.13:11311'
+#ROS_MASTER_URI = 'http://192.168.1.11:11311'
 
-#MY_CLIENT_URI = 'http://192.168.0.12:8000'
-MY_CLIENT_URI = 'http://192.168.1.42:8000'
+MY_CLIENT_URI = 'http://192.168.0.12:8000'
+#MY_CLIENT_URI = 'http://192.168.1.42:8000'
 
-#HOST = '192.168.0.12'
-HOST = '192.168.1.42'
+HOST = '192.168.0.12'
+#HOST = '192.168.1.42'
 PORT = 8123
 
 from xmlrpclib import ServerProxy
@@ -49,8 +49,8 @@ for s in systemState[0]:
   print s
 
 caller_id = "/hello_node"
-#topic, topic_type, md5 = "/hello", "std_msgs/String", '992ce8a1687cec8c8bd883ec73ca41d1'
-topic, topic_type, md5 = "/husky/cmd_vel", "geometry_msgs/Twist", '9f195f881246fdfa2798d1d3eebca84a'
+topic, topic_type, md5 = "/hello", "std_msgs/String", '992ce8a1687cec8c8bd883ec73ca41d1'
+#topic, topic_type, md5 = "/husky/cmd_vel", "geometry_msgs/Twist", '9f195f881246fdfa2798d1d3eebca84a'
 
 caller_api = MY_CLIENT_URI # for "publisherUpdate"
 
@@ -75,14 +75,19 @@ header = prefix4BytesLen(
         "" )
 socket.send( header )
 data = prefix4BytesLen(
-        struct.pack("dddddd", 0.1,0,0, 0,0,0)
+        prefix4BytesLen( "AHOJ-XXX" )
         )
 socket.send( data )
-time.sleep(1.0)
-data = prefix4BytesLen(
-        struct.pack("dddddd", 0.0,0,0, 0,0,0)
-        )
-socket.send( data )
+
+#data = prefix4BytesLen(
+#        struct.pack("dddddd", 0.1,0,0, 0,0,0)
+#        )
+#socket.send( data )
+#time.sleep(1.0)
+#data = prefix4BytesLen(
+#        struct.pack("dddddd", 0.0,0,0, 0,0,0)
+#        )
+#socket.send( data )
 
 code, statusMessage, numUnreg = master.unregisterPublisher(caller_id, topic, caller_api)
 print code, statusMessage, numUnreg
