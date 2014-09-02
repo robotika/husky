@@ -27,9 +27,9 @@ class LoggedStream:
         self.readFn = readFn
         self.writeFn = writeFn
         dt = datetime.datetime.now()
-        filename = prefix + dt.strftime("%y%m%d_%H%M%S.log") 
-        self.logFile = open( filename, "wb" )
-        print "LogIt:", filename 
+        self.filename = prefix + dt.strftime("%y%m%d_%H%M%S.log") 
+        self.logFile = open( self.filename, "wb" )
+        print "LogIt:", self.filename 
         self.buf = ""
     
     def readMsg( self ):
@@ -58,6 +58,27 @@ class LoggedStream:
         self.logFile.write( data )
         self.logFile.flush()
         self.writeFn( data )
+
+
+
+class ReplayLoggedStream:
+    def __init__( self, filename ):
+        self.filename = filename
+        self.logFile = open( self.filename, "rb" )
+        print "ReplayLog:", self.filename 
+    
+    def readMsg( self ):
+        data = self.logFile.read( 4 )
+        if len(data) >= 4:
+            num = struct.unpack("I", data[:4])[0]
+            return self.logFile.read( num )
+        return None
+
+    def writeMsg( self, msg ):
+        data = prefix4BytesLen( msg )
+        ref = self.logFile.read( len(data) )
+        assert data == ref, (ref,data)
+
 
 
 class Tcpros:

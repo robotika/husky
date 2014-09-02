@@ -2,7 +2,7 @@
   Python code imitating ROS node (both publisher and subscriber)
   targeted to control Husky platform.
   usage:
-      ./node.py <node IP> <master IP>
+      ./node.py [<node IP> <master IP> | <metalog>]
 """
 
 # for test run on server:
@@ -33,7 +33,7 @@ import datetime
 
 from threading import Thread
 
-from tcpros import prefix4BytesLen, Tcpros, LoggedStream
+from tcpros import prefix4BytesLen, Tcpros, LoggedStream, ReplayLoggedStream
 from msgs import *
 
 def publisherUpdate(caller_id, topic, publishers):
@@ -60,22 +60,40 @@ class MyXMLRPCServer( Thread ):
 
 
 class NodeROS:
-    def __init__( self, subscribe=[], publish=[] ):
-        dt = datetime.datetime.now()
-        filename = "meta" + dt.strftime("%y%m%d_%H%M%S.log") 
-        self.metalog = open( filename, "wb" )
+    def __init__( self, subscribe=[], publish=[], metalog=None ):
         self.callerId = '/node_test_ros' # TODO combination host/port?
-        self.callerApi = "http://"+NODE_HOST+":%d" % NODE_PORT
-        print "STARTING", self.callerId, "at", self.callerApi # TODO logging instead
-        self.server = MyXMLRPCServer( (NODE_HOST, NODE_PORT) )
-        self.master = ServerProxy( ROS_MASTER_URI )
+        if metalog == None:
+            dt = datetime.datetime.now()
+            filename = "meta" + dt.strftime("%y%m%d_%H%M%S.log") 
+            self.metalog = open( filename, "wb" )
+            self.callerApi = "http://"+NODE_HOST+":%d" % NODE_PORT
+            print "STARTING", self.callerId, "at", self.callerApi
+            self.server = MyXMLRPCServer( (NODE_HOST, NODE_PORT) )
+            self.master = ServerProxy( ROS_MASTER_URI )
+        else:
+            self.callerApi = None # replay log file(s)
+            self.metalog = open( metalog, "rb" )
+
         self.sockets = {}
         for topic in subscribe:
-            self.sockets[topic] = Tcpros( readMsgFn=LoggedStream( self.requestTopic( topic ).recv, prefix=topic.replace('/','_') ).readMsg )
+            if self.callerApi != None: # or special bool for that?
+                logStream = LoggedStream( self.requestTopic( topic ).recv, prefix=topic.replace('/','_') )
+                self.metalog.write( logStream.filename + '\n' )
+            else:
+                filename = self.metalog.readline().strip()
+                logStream = ReplayLoggedStream( filename )
+            self.sockets[topic] = Tcpros( readMsgFn=logStream.readMsg )
+
         self.publishSockets = {}
         for topic in publish:
-            self.publishSockets[topic] = LoggedStream( writeFn=self.publishTopic( topic ).send, prefix=topic.replace('/','_') )
+            if self.callerApi != None:
+                self.publishSockets[topic] = LoggedStream( writeFn=self.publishTopic( topic ).send, prefix=topic.replace('/','_') )
+                self.metalog.write( self.publishSockets[topic].filename + '\n' )
+            else:
+                filename = self.metalog.readline().strip()
+                self.publishSockets[topic] = ReplayLoggedStream( filename )
         self.cmdList = []
+
 
     def lookupTopicType( self, topic ):
         # TODO separate msgs.py with types and md5
@@ -88,6 +106,7 @@ class NodeROS:
                 '/joy': ('sensor_msgs/Joy', '5a9ea5f83505693b71e785041e67a8bb', parseJoy),
               }       
         return tab[topic]
+
 
     def requestTopic( self, topic ):
         code, statusMessage, publishers = self.master.registerSubscriber(self.callerId, topic, self.lookupTopicType(topic)[0], self.callerApi)
@@ -141,6 +160,8 @@ class NodeROS:
 
 
     def unregisterAll( self ):
+        if self.callerApi == None:
+            return # only logs
         for topic in self.publishSockets.keys():
             code, statusMessage, numUnreg = self.master.unregisterPublisher( self.callerId, topic, self.callerApi )
             print code, statusMessage, numUnreg
@@ -148,24 +169,37 @@ class NodeROS:
 
     def update( self ):
         for topic, cmd in self.cmdList:
-            self.metalog.write( topic + '\n' )
-            self.metalog.flush()
+            if self.callerApi != None:
+                self.metalog.write( topic + '\n' )
+                self.metalog.flush()
+            else:
+                logTopic = self.metalog.readline().strip()
+                assert topic == logTopic, (topic, logTopic)
             self.publishSockets[topic].writeMsg( self.lookupTopicType(topic)[3]( cmd ) ) # 4th param is packing function
         self.cmdList = []
         atLeastOne = False
         while not atLeastOne and len(self.sockets) > 0:
-            for topic,soc in self.sockets.items():
+            if self.callerApi != None:
+                for topic,soc in self.sockets.items():
+                    m = soc.readMsg()
+                    if m != None:
+                        self.metalog.write( topic + '\n' )
+                        self.metalog.flush()
+                        print topic
+                        print self.lookupTopicType(topic)[2]( m )
+                        atLeastOne = True
+            else:
+                topic = self.metalog.readline().strip()
+                soc = self.sockets[ topic ]
                 m = soc.readMsg()
-                if m != None:
-                    self.metalog.write( topic + '\n' )
-                    self.metalog.flush()
-                    print topic
-                    print self.lookupTopicType(topic)[2]( m )
-                    atLeastOne = True
+                print topic
+                print self.lookupTopicType(topic)[2]( m )
+                atLeastOne = True
 
 
-def testNode1():
-    node = NodeROS( subscribe=['/hello'])
+
+def testNode( metalog ):
+    node = NodeROS( subscribe=['/hello'], metalog=metalog )
     node.update()
 
 def testNode2():
@@ -174,20 +208,25 @@ def testNode2():
     for i in xrange(1000):
         node.update()
 
-def testNode():
-    node = NodeROS( publish=['/hello'])
+def testNode3( metalog ):
+    node = NodeROS( publish=['/hello'], metalog=metalog )
     node.cmdList.append( ('/hello', "Hello ROS Universe!") )
     node.update()
     assert len(node.cmdList) == 0, node.cmdList
     node.unregisterAll()
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
+    if len(sys.argv) < 2 or (len(sys.argv)==2 and "meta" not in sys.argv[1]):
         print __doc__
         sys.exit(1)
-    NODE_HOST = sys.argv[1]
-    ROS_MASTER_URI = 'http://'+sys.argv[2]+':11311'
-    testNode()
+
+    metalog = None
+    if "meta" in sys.argv[1]:
+        metalog = sys.argv[1]
+    else:
+        NODE_HOST = sys.argv[1]
+        ROS_MASTER_URI = 'http://'+sys.argv[2]+':11311'
+    testNode( metalog )
 
 #-------------------------------------------------------------------
 # vim: expandtab sw=4 ts=4
