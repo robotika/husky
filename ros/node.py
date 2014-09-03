@@ -21,6 +21,12 @@ ROS_MASTER_URI = None
 NODE_HOST, NODE_PORT = (None, 8000)
 PUBLISH_PORT = 8123
 
+def setIPs( nodeIP, masterIP ):
+    global ROS_MASTER_URI
+    global NODE_HOST
+    ROS_MASTER_URI = masterIP
+    NODE_HOST = nodeIP
+
 
 from xmlrpclib import ServerProxy
 from SimpleXMLRPCServer import SimpleXMLRPCServer
@@ -181,6 +187,7 @@ class NodeROS:
             self.publishSockets[topic].writeMsg( self.lookupTopicType(topic)[3]( *cmd ) ) # 4th param is packing function
         self.cmdList = []
         atLeastOne = False
+        ret = []
         while not atLeastOne and len(self.sockets) > 0:
             if self.callerApi != None:
                 for topic,soc in self.sockets.items():
@@ -188,8 +195,7 @@ class NodeROS:
                     if m != None:
                         self.metalog.write( topic + '\n' )
                         self.metalog.flush()
-                        print topic
-                        print self.lookupTopicType(topic)[2]( m )
+                        ret.append( (topic,self.lookupTopicType(topic)[2]( m )) )
                         if self.heartbeat == None or topic == self.heartbeat:
                             atLeastOne = True
             else:
@@ -199,12 +205,11 @@ class NodeROS:
                     break
                 soc = self.sockets[ topic ]
                 m = soc.readMsg()
-                print topic
-                print self.lookupTopicType(topic)[2]( m )
+                ret.append( (topic,self.lookupTopicType(topic)[2]( m )) )
         if self.callerApi != None:
             self.metalog.write( '---\n' )
             self.metalog.flush()
-
+        return ret
 
 
 def testNode1( metalog ):
