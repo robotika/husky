@@ -60,8 +60,9 @@ class MyXMLRPCServer( Thread ):
 
 
 class NodeROS:
-    def __init__( self, subscribe=[], publish=[], metalog=None ):
+    def __init__( self, subscribe=[], publish=[], heartbeat=None, metalog=None ):
         self.callerId = '/node_test_ros' # TODO combination host/port?
+        self.heartbeat = heartbeat
         if metalog == None:
             dt = datetime.datetime.now()
             filename = "meta" + dt.strftime("%y%m%d_%H%M%S.log") 
@@ -103,6 +104,8 @@ class NodeROS:
                 '/husky/data/encoders': ("clearpath_base/Encoders", '2ea748832c2014369ffabd316d5aad8c', parseEncoders),
                 '/husky/data/power_status': ('clearpath_base/PowerStatus', 'f246c359530c58415aee4fe89d1aca04', parsePower),
                 '/husky/data/safety_status': ('clearpath_base/SafetyStatus', 'cf78d6042b92d64ebda55641e06d66fa', parseNone), # TODO
+                '/husky/data/system_status': ('clearpath_base/SystemStatus', 'b24850c808eb727058fff35ba598006f', parseNone), # TODO
+                '/husky/cmd_vel' : ('geometry_msgs/Twist', '9f195f881246fdfa2798d1d3eebca84a', parseNone, packCmdVel),
                 '/joy': ('sensor_msgs/Joy', '5a9ea5f83505693b71e785041e67a8bb', parseJoy),
               }       
         return tab[topic]
@@ -175,7 +178,7 @@ class NodeROS:
             else:
                 logTopic = self.metalog.readline().strip()
                 assert topic == logTopic, (topic, logTopic)
-            self.publishSockets[topic].writeMsg( self.lookupTopicType(topic)[3]( cmd ) ) # 4th param is packing function
+            self.publishSockets[topic].writeMsg( self.lookupTopicType(topic)[3]( *cmd ) ) # 4th param is packing function
         self.cmdList = []
         atLeastOne = False
         while not atLeastOne and len(self.sockets) > 0:
@@ -187,26 +190,38 @@ class NodeROS:
                         self.metalog.flush()
                         print topic
                         print self.lookupTopicType(topic)[2]( m )
-                        atLeastOne = True
+                        if self.heartbeat == None or topic == self.heartbeat:
+                            atLeastOne = True
             else:
                 topic = self.metalog.readline().strip()
+                if topic == '---':
+                    atLeastOne = True
+                    break
                 soc = self.sockets[ topic ]
                 m = soc.readMsg()
                 print topic
                 print self.lookupTopicType(topic)[2]( m )
-                atLeastOne = True
+        if self.callerApi != None:
+            self.metalog.write( '---\n' )
+            self.metalog.flush()
 
 
 
-def testNode( metalog ):
+def testNode1( metalog ):
     node = NodeROS( subscribe=['/hello'], metalog=metalog )
     node.update()
 
-def testNode2():
+def testNode( metalog ):
     node = NodeROS( subscribe=['/imu/data', '/husky/data/encoders', '/husky/data/power_status',
-        '/husky/data/safety_status', '/joy'])
-    for i in xrange(1000):
+        '/husky/data/safety_status', '/joy', '/husky/data/system_status'], 
+        publish=['/husky/cmd_vel'],
+        heartbeat='/husky/data/encoders',
+        metalog=metalog)
+    for i in xrange(100):
+        node.cmdList.append( ('/husky/cmd_vel', (0.1,0)) )
         node.update()
+    node.cmdList.append( ('/husky/cmd_vel', (0,0)) )
+    node.update()
 
 def testNode3( metalog ):
     node = NodeROS( publish=['/hello'], metalog=metalog )

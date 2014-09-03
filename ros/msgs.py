@@ -15,6 +15,11 @@ def parseString( data ):
 def packString( s ):
     return struct.pack("I", len(s)) + s
 
+
+def packCmdVel( speed, angularSpeed ):
+    return struct.pack("dddddd", speed,0,0, angularSpeed,0,0)
+
+
 def parseImu( data ):
     seq, stamp, stampNsec, frameIdLen = struct.unpack("IIII", data[:16])
     print seq, stamp, stampNsec, frameIdLen
