@@ -17,7 +17,7 @@ def packString( s ):
 
 
 def packCmdVel( speed, angularSpeed ):
-    return struct.pack("dddddd", speed,0,0, angularSpeed,0,0)
+    return struct.pack("dddddd", speed,0,0, 0,0,angularSpeed)
 
 
 def parseImu( data ):

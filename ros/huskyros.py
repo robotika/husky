@@ -24,6 +24,7 @@ class HuskyROS:
         self.angularSpeed = 0.0
         self.greenPressed = None
         self.redPressed = None
+        self.joyAxis = (0,0, 0,0, 0,0)
 
     def update( self ):
         self.node.cmdList.append( ('/husky/cmd_vel', (self.speed,self.angularSpeed)) )
@@ -31,13 +32,12 @@ class HuskyROS:
         for topic,data in status:
             if topic == '/joy':
                 print data
-                axes, buttons = data
+                self.joyAxis, buttons = data
                 self.greenPressed = (buttons[1]==1)
                 self.redPressed = (buttons[2]==1)
 
 
-def test( metalog ):
-    robot = HuskyROS( metalog=metalog )
+def test( robot ):
     robot.speed = 0.0
     while True:
         robot.update()
@@ -51,10 +51,26 @@ def test( metalog ):
             print "RED"
             robot.speed = 0.0
             break
-
     robot.speed = 0.0
     robot.update()
 
+def test2( robot ):
+    VEL_SCALE = 0.5
+    ROT_SCALE = 1.0 
+    while True:
+        robot.update()
+        if robot.greenPressed:
+            robot.speed = -VEL_SCALE*robot.joyAxis[1]
+            robot.angularSpeed = -ROT_SCALE*robot.joyAxis[0]
+            print robot.joyAxis
+            print "SPEED", robot.speed, robot.angularSpeed
+        else:
+            robot.speed,robot.angularSpeed = 0,0
+        if robot.redPressed:
+            print "RED"
+            break
+    robot.speed = 0.0
+    robot.update()
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or (len(sys.argv)==2 and "meta" not in sys.argv[1]):
@@ -66,7 +82,8 @@ if __name__ == "__main__":
         metalog = sys.argv[1]
     else:
         setIPs( sys.argv[1], 'http://'+sys.argv[2]+':11311' )
-    test( metalog )
+    robot = HuskyROS( metalog=metalog )
+    test2( robot )
 
 #-------------------------------------------------------------------
 # vim: expandtab sw=4 ts=4 
