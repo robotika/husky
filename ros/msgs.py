@@ -22,8 +22,8 @@ def packCmdVel( speed, angularSpeed ):
 
 def parseImu( data ):
     seq, stamp, stampNsec, frameIdLen = struct.unpack("IIII", data[:16])
-    print seq, stamp, stampNsec, frameIdLen
-    print data[16:16+frameIdLen]
+#    print seq, stamp, stampNsec, frameIdLen
+#    print data[16:16+frameIdLen]
     data = data[16+frameIdLen:]
     orientation = struct.unpack("dddd", data[:4*8])
     data = data[4*8+9*8:] # skip covariance matrix
@@ -37,7 +37,7 @@ def parseImu( data ):
 
 def parseEncoders( data ):
     seq, stamp, stampNsec, frameIdLen = struct.unpack("IIII", data[:16])
-    print seq, stamp, stampNsec, frameIdLen
+#    print seq, stamp, stampNsec, frameIdLen
     assert frameIdLen == 0, frameIdLen
     data = data[16+frameIdLen:]
     arrLen, travelL,speedL, travelR,speedR = struct.unpack("=Idddd", data)
@@ -47,7 +47,7 @@ def parseEncoders( data ):
 
 def parsePower( data ):
     seq, stamp, stampNsec, frameIdLen = struct.unpack("IIII", data[:16])
-    print seq, stamp, stampNsec, frameIdLen
+#    print seq, stamp, stampNsec, frameIdLen
     assert frameIdLen == 0, frameIdLen
     data = data[16+frameIdLen:]
     arrLen, charge, capacity, present, inUse, description = struct.unpack("=Ifh??B", data)
@@ -56,7 +56,7 @@ def parsePower( data ):
 
 def parseJoy( data ):
     seq, stamp, stampNsec, frameIdLen = struct.unpack("IIII", data[:16])
-    print seq, stamp, stampNsec, frameIdLen
+#    print seq, stamp, stampNsec, frameIdLen
     assert frameIdLen == 0, frameIdLen
     data = data[16+frameIdLen:]
     # float32[] axes          # the axes measurements from a joystick
@@ -70,7 +70,7 @@ def parseJoy( data ):
 
 def parseSafety( data ):
     seq, stamp, stampNsec, frameIdLen = struct.unpack("IIII", data[:16])
-    print seq, stamp, stampNsec, frameIdLen
+#    print seq, stamp, stampNsec, frameIdLen
     data = data[16+frameIdLen:]
     # uint16 flags  ... not very descriptive
     # bool estop

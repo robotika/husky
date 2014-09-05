@@ -31,7 +31,6 @@ class HuskyROS:
         status = self.node.update()
         for topic,data in status:
             if topic == '/joy':
-                print data
                 self.joyAxis, buttons = data
                 self.greenPressed = (buttons[1]==1)
                 self.redPressed = (buttons[2]==1)
@@ -62,8 +61,6 @@ def test2( robot ):
         if robot.greenPressed:
             robot.speed = -VEL_SCALE*robot.joyAxis[1]
             robot.angularSpeed = -ROT_SCALE*robot.joyAxis[0]
-            print robot.joyAxis
-            print "SPEED", robot.speed, robot.angularSpeed
         else:
             robot.speed,robot.angularSpeed = 0,0
         if robot.redPressed:

@@ -83,10 +83,11 @@ class ReplayLoggedStream:
 
 class Tcpros:
     "TCPROS communication protocol"
-    def __init__( self, readFn=None, readMsgFn=None ):
+    def __init__( self, readFn=None, readMsgFn=None, verbose=False ):
         self.readFn = readFn
         self.readMsgFn = readMsgFn
         self.topicType = None
+        self.verbose = verbose
 
     def readMsg( self ):
         "skip very first message - topic description"
@@ -94,8 +95,9 @@ class Tcpros:
             m = self._readMsg()
             if m != None:
                 self.topicType = splitLenStr(m)
-                for s in self.topicType:
-                    print s
+                if self.verbose:
+                    for s in self.topicType:
+                        print s
                 return self._readMsg()
             return None
         return self._readMsg()
