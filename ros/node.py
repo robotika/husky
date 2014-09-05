@@ -36,6 +36,7 @@ import struct
 import sys
 import time
 import datetime
+import os
 
 from threading import Thread
 
@@ -80,6 +81,7 @@ class NodeROS:
         else:
             self.callerApi = None # replay log file(s)
             self.metalog = open( metalog, "rb" )
+            self.metalogDir = os.path.dirname( metalog )
 
         self.sockets = {}
         for topic in subscribe:
@@ -88,7 +90,7 @@ class NodeROS:
                 self.metalog.write( logStream.filename + '\n' )
             else:
                 filename = self.metalog.readline().strip()
-                logStream = ReplayLoggedStream( filename )
+                logStream = ReplayLoggedStream( self.metalogDir + os.sep + filename )
             self.sockets[topic] = Tcpros( readMsgFn=logStream.readMsg )
 
         self.publishSockets = {}
@@ -98,7 +100,7 @@ class NodeROS:
                 self.metalog.write( self.publishSockets[topic].filename + '\n' )
             else:
                 filename = self.metalog.readline().strip()
-                self.publishSockets[topic] = ReplayLoggedStream( filename )
+                self.publishSockets[topic] = ReplayLoggedStream( self.metalogDir + os.sep + filename )
         self.cmdList = []
 
 
