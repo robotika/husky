@@ -20,7 +20,7 @@ def normalizeAnglePIPI( angle ):
 class HuskyROS:
     def __init__( self, metalog=None, assertWrite=True ):
         self.node = NodeROS( 
-            subscribe=['/imu/data', 
+            subscribe=['/imu/data', '/imu/mag', '/imu/rpy', '/imu/temperature',
                 '/husky/data/encoders', 
                 '/husky/data/power_status',
                 '/husky/data/safety_status', 
@@ -34,6 +34,8 @@ class HuskyROS:
         self.enc = None # unknown
         self.time = None
         self.imu = None
+        self.mag = None
+        self.azimuth = None
         self.greenPressed = None
         self.redPressed = None
         self.joyAxis = (0,0, 0,0, 0,0)
@@ -52,16 +54,19 @@ class HuskyROS:
 #                print "[%.2f %.2f %.2f]" % (1-2*(q2*q2+q3*q3), 2*(q1*q2-q0*q3), 2*(q0*q2+q1*q3)),
 #                print "[%.2f %.2f %.2f]" % (2*(q1*q2+q0*q3), 1-2*(q1*q1+q3*q3), 2*(q2*q3-q0*q1)),
 #                print "[%.2f %.2f %.2f]" % (2*(q1*q3-q0*q2), 2*(q0*q1+q2*q3), 1-2*(q1*q1+q2*q2))
-                a2 = math.acos(q0)   # q0 = cos(alpha/2)
-                sinA2 = math.sin(a2)
-                bx = math.acos(q1/sinA2) # q1 = sin(alpha/2)*cos(bx)
-                by = math.acos(q2/sinA2)
-                bz = math.acos(q3/sinA2)
+#                a2 = math.acos(q0)   # q0 = cos(alpha/2)
+#                sinA2 = math.sin(a2)
+#                bx = math.acos(q1/sinA2) # q1 = sin(alpha/2)*cos(bx)
+#                by = math.acos(q2/sinA2)
+#                bz = math.acos(q3/sinA2)
 #                self.imu = data[:]
 #                print bx, by, bz #math.degrees(2*a2)
                 self.imu =  math.atan2(2*(q0*q1+q2*q3), 1-2*(q1*q1+q2*q2)) # along X axis
 #                self.imu =  math.degrees( math.asin(2*(q0*q2-q3*q1)) ) # along Y axis ... max 5deg
 #                self.imu =  math.degrees( math.atan2(2*(q0*q3+q1*q2), 1-2*(q2*q2+q3*q3)) ) # along Z axis ~80 deg
+            if topic == '/imu/mag':
+                self.mag = data[:]
+                self.azimuth = math.atan2( data[0], data[2] )
 
             if topic == '/husky/data/encoders':
                 self.time = data[0]
@@ -100,7 +105,7 @@ class HuskyROS:
 
     def wait( self, seconds ):
         startTime = self.time
-        while startTime + seconds < self.time:
+        while startTime + seconds > self.time:
             self.setSpeedPxPa( 0.0, 0.0 )
             self.update()
 
@@ -140,16 +145,25 @@ def test2( robot ):
     robot.update()
 
 
+
 def test3( robot ):
-    print math.degrees(robot.imu)
+    print math.degrees(robot.imu), robot.mag, math.degrees(robot.azimuth)
     robot.goStraight( 1.0 )
-    print math.degrees(robot.imu)
+    print math.degrees(robot.imu), robot.mag, math.degrees(robot.azimuth)
     robot.wait( 3 )
-    print math.degrees(robot.imu)
+    print math.degrees(robot.imu), robot.mag, math.degrees(robot.azimuth)
     robot.turn( math.radians(90) )
-    print math.degrees(robot.imu)
+    print math.degrees(robot.imu), robot.mag
     robot.wait( 3 )
-    print math.degrees(robot.imu)
+    print math.degrees(robot.imu), robot.mag
+
+
+def test4( robot ):
+    robot.wait( 3 )
+    for i in xrange(20):
+        robot.wait( 2 )
+        robot.turn( math.radians(20) )
+    robot.wait( 3 )
 
 
 if __name__ == "__main__":
@@ -166,7 +180,7 @@ if __name__ == "__main__":
     else:
         setIPs( sys.argv[1], 'http://'+sys.argv[2]+':11311' )
     robot = HuskyROS( metalog=metalog, assertWrite=assertWrite )
-    test3( robot )
+    test4( robot )
 
 #-------------------------------------------------------------------
 # vim: expandtab sw=4 ts=4 

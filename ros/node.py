@@ -41,7 +41,7 @@ import os
 from threading import Thread
 
 from tcpros import prefix4BytesLen, Tcpros, LoggedStream, ReplayLoggedStream
-from msgs import *
+from msgs import * # including lookupTopicType
 
 def publisherUpdate(caller_id, topic, publishers):
     print "called 'publisherUpdate' with", (caller_id, topic, publishers)
@@ -104,23 +104,8 @@ class NodeROS:
         self.cmdList = []
 
 
-    def lookupTopicType( self, topic ):
-        # TODO separate msgs.py with types and md5
-        tab = { 
-                '/hello': ("std_msgs/String", '992ce8a1687cec8c8bd883ec73ca41d1', parseString, packString),
-                '/imu/data': ("std_msgs/Imu", "6a62c6daae103f4ff57a132d6f95cec2", parseImu),
-                '/husky/data/encoders': ("clearpath_base/Encoders", '2ea748832c2014369ffabd316d5aad8c', parseEncoders),
-                '/husky/data/power_status': ('clearpath_base/PowerStatus', 'f246c359530c58415aee4fe89d1aca04', parsePower),
-                '/husky/data/safety_status': ('clearpath_base/SafetyStatus', 'cf78d6042b92d64ebda55641e06d66fa', parseNone), # TODO
-                '/husky/data/system_status': ('clearpath_base/SystemStatus', 'b24850c808eb727058fff35ba598006f', parseNone), # TODO
-                '/husky/cmd_vel' : ('geometry_msgs/Twist', '9f195f881246fdfa2798d1d3eebca84a', parseNone, packCmdVel),
-                '/joy': ('sensor_msgs/Joy', '5a9ea5f83505693b71e785041e67a8bb', parseJoy),
-              }       
-        return tab[topic]
-
-
     def requestTopic( self, topic ):
-        code, statusMessage, publishers = self.master.registerSubscriber(self.callerId, topic, self.lookupTopicType(topic)[0], self.callerApi)
+        code, statusMessage, publishers = self.master.registerSubscriber(self.callerId, topic, lookupTopicType(topic)[0], self.callerApi)
         assert code == 1, (code, statusMessage)
         assert len(publishers) == 1, publishers # i.e. fails if publisher is not ready now
         print publishers
@@ -138,16 +123,16 @@ class NodeROS:
         header = prefix4BytesLen(
             prefix4BytesLen( "callerid="+self.callerId ) +
             prefix4BytesLen( "topic="+topic ) +
-            prefix4BytesLen( "type="+self.lookupTopicType(topic)[0] ) +
-            prefix4BytesLen( "md5sum="+self.lookupTopicType(topic)[1] ) +
+            prefix4BytesLen( "type="+lookupTopicType(topic)[0] ) +
+            prefix4BytesLen( "md5sum="+lookupTopicType(topic)[1] ) +
             "" )
         soc.send( header )
         return soc
 
     def publishTopic( self, topic ):
         "establish connection with exactly one subscriber"
-        print "PUBLISH", topic, ( self.callerId, topic, self.lookupTopicType(topic)[0], self.callerApi )
-        code, statusMessage, subscribers = self.master.registerPublisher( self.callerId, topic, self.lookupTopicType(topic)[0], self.callerApi )
+        print "PUBLISH", topic, ( self.callerId, topic, lookupTopicType(topic)[0], self.callerApi )
+        code, statusMessage, subscribers = self.master.registerPublisher( self.callerId, topic, lookupTopicType(topic)[0], self.callerApi )
         print subscribers
 
         serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -163,8 +148,8 @@ class NodeROS:
         header = prefix4BytesLen(
             prefix4BytesLen( "callerid="+self.callerId ) +
             prefix4BytesLen( "topic="+topic ) +
-            prefix4BytesLen( "type="+self.lookupTopicType(topic)[0] ) +
-            prefix4BytesLen( "md5sum="+self.lookupTopicType(topic)[1] ) +
+            prefix4BytesLen( "type="+lookupTopicType(topic)[0] ) +
+            prefix4BytesLen( "md5sum="+lookupTopicType(topic)[1] ) +
             "" )
         soc.send( header )
         return soc
@@ -186,7 +171,7 @@ class NodeROS:
             else:
                 logTopic = self.metalog.readline().strip()
                 assert topic == logTopic, (topic, logTopic)
-            self.publishSockets[topic].writeMsg( self.lookupTopicType(topic)[3]( *cmd ) ) # 4th param is packing function
+            self.publishSockets[topic].writeMsg( lookupTopicType(topic)[3]( *cmd ) ) # 4th param is packing function
         self.cmdList = []
         atLeastOne = False
         ret = []
@@ -197,7 +182,7 @@ class NodeROS:
                     if m != None:
                         self.metalog.write( topic + '\n' )
                         self.metalog.flush()
-                        ret.append( (topic,self.lookupTopicType(topic)[2]( m )) )
+                        ret.append( (topic,lookupTopicType(topic)[2]( m )) )
                         if self.heartbeat == None or topic == self.heartbeat:
                             atLeastOne = True
             else:
@@ -207,7 +192,7 @@ class NodeROS:
                     break
                 soc = self.sockets[ topic ]
                 m = soc.readMsg()
-                ret.append( (topic,self.lookupTopicType(topic)[2]( m )) )
+                ret.append( (topic,lookupTopicType(topic)[2]( m )) )
         if self.callerApi != None:
             self.metalog.write( '---\n' )
             self.metalog.flush()
