@@ -62,10 +62,11 @@ class LoggedStream:
 
 
 class ReplayLoggedStream:
-    def __init__( self, filename ):
+    def __init__( self, filename, assertWrite ):
         self.filename = filename
         self.logFile = open( self.filename, "rb" )
         print "ReplayLog:", self.filename 
+        self.assertWrite = assertWrite
     
     def readMsg( self ):
         data = self.logFile.read( 4 )
@@ -77,7 +78,8 @@ class ReplayLoggedStream:
     def writeMsg( self, msg ):
         data = prefix4BytesLen( msg )
         ref = self.logFile.read( len(data) )
-        assert data == ref, (ref,data)
+        if self.assertWrite:
+            assert data == ref, (ref,data)
 
 
 

@@ -42,7 +42,7 @@ def parseEncoders( data ):
     data = data[16+frameIdLen:]
     arrLen, travelL,speedL, travelR,speedR = struct.unpack("=Idddd", data)
     assert arrLen==2, arrLen
-    return (travelL,speedL), (travelR,speedR)
+    return stamp+stampNsec/1000000000., (travelL,speedL), (travelR,speedR)
 
 
 def parsePower( data ):

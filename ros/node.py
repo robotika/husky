@@ -67,7 +67,7 @@ class MyXMLRPCServer( Thread ):
 
 
 class NodeROS:
-    def __init__( self, subscribe=[], publish=[], heartbeat=None, metalog=None ):
+    def __init__( self, subscribe=[], publish=[], heartbeat=None, metalog=None, assertWrite=True ):
         self.callerId = '/node_test_ros' # TODO combination host/port?
         self.heartbeat = heartbeat
         if metalog == None:
@@ -90,7 +90,7 @@ class NodeROS:
                 self.metalog.write( logStream.filename + '\n' )
             else:
                 filename = self.metalog.readline().strip()
-                logStream = ReplayLoggedStream( self.metalogDir + os.sep + filename )
+                logStream = ReplayLoggedStream( self.metalogDir + os.sep + filename, assertWrite=assertWrite )
             self.sockets[topic] = Tcpros( readMsgFn=logStream.readMsg )
 
         self.publishSockets = {}
@@ -100,7 +100,7 @@ class NodeROS:
                 self.metalog.write( self.publishSockets[topic].filename + '\n' )
             else:
                 filename = self.metalog.readline().strip()
-                self.publishSockets[topic] = ReplayLoggedStream( self.metalogDir + os.sep + filename )
+                self.publishSockets[topic] = ReplayLoggedStream( self.metalogDir + os.sep + filename, assertWrite )
         self.cmdList = []
 
 
