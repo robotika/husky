@@ -1,5 +1,8 @@
 """
   'Database' of messages
+  usage:
+      ./msgs.py <topic> <filename>
+
 """
 
 import struct
@@ -14,8 +17,8 @@ def lookupTopicType( topic ):
             '/imu/temperature': ("std_msgs/Float32", "73fcbf46b49191e672908e50842a83d4", parseNone),
             '/husky/data/encoders': ("clearpath_base/Encoders", '2ea748832c2014369ffabd316d5aad8c', parseEncoders),
             '/husky/data/power_status': ('clearpath_base/PowerStatus', 'f246c359530c58415aee4fe89d1aca04', parsePower),
-            '/husky/data/safety_status': ('clearpath_base/SafetyStatus', 'cf78d6042b92d64ebda55641e06d66fa', parseNone), # TODO
-            '/husky/data/system_status': ('clearpath_base/SystemStatus', 'b24850c808eb727058fff35ba598006f', parseNone), # TODO
+            '/husky/data/safety_status': ('clearpath_base/SafetyStatus', 'cf78d6042b92d64ebda55641e06d66fa', parseSafety),
+            '/husky/data/system_status': ('clearpath_base/SystemStatus', 'b24850c808eb727058fff35ba598006f', parseSystemStatus),
             '/husky/cmd_vel' : ('geometry_msgs/Twist', '9f195f881246fdfa2798d1d3eebca84a', parseNone, packCmdVel),
             '/joy': ('sensor_msgs/Joy', '5a9ea5f83505693b71e785041e67a8bb', parseJoy),
           }       
@@ -99,6 +102,48 @@ def parseSafety( data ):
     # uint16 flags  ... not very descriptive
     # bool estop
     return struct.unpack("H?", data)
+
+def parseSystemStatus( data ):
+    seq, stamp, stampNsec, frameIdLen = struct.unpack("IIII", data[:16])
+    data = data[16+frameIdLen:]
+    # float64[] voltages
+    # float64[] currents
+    # float64[] temperatures 
+    # three voltages are measured at the MCU, the left motor drive, and the right motor driver. 
+    # the currents are similarly system current, left driver, right driver.
+    # the temperatures are left driver, right driver, left motor, right motor. 
+    #    Note that the motor temperature is measured from the motor casing, and not the inside,
+    #    so be aware that the temperature of the coils could be higher than these readings show.
+    uptime, numVoltages = struct.unpack("II", data[:8])
+    data = data[8:]
+    voltages  = struct.unpack( "d"*numVoltages, data[:numVoltages*8] )
+    data = data[numVoltages*8:]
+    numCurrents = struct.unpack("I", data[:4])[0]
+    data = data[4:]
+    currents = struct.unpack( "d"*numCurrents, data[:numCurrents*8] )
+    data = data[numCurrents*8:]
+    numTemperatures = struct.unpack("I", data[:4])[0]
+    data = data[4:]
+    temperatures = struct.unpack( "d"*numTemperatures, data[:numTemperatures*8] )
+    return voltages, currents, temperatures
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) < 3:
+        print __doc__
+        sys.exit(1)
+    fn = lookupTopicType( sys.argv[1] )[2]
+    f = open( sys.argv[2], "rb" )
+    header = True
+    while True:
+        data = f.read(4)
+        if len(data) < 4:
+            break
+        size = struct.unpack("I", data)[0]
+        data = f.read( size )
+        if not header:
+            print fn( data )
+        header = False
 
 #-------------------------------------------------------------------
 # vim: expandtab sw=4 ts=4
