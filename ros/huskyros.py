@@ -66,7 +66,7 @@ class HuskyROS:
 #                self.imu =  math.degrees( math.atan2(2*(q0*q3+q1*q2), 1-2*(q2*q2+q3*q3)) ) # along Z axis ~80 deg
             if topic == '/imu/mag':
                 self.mag = data[:]
-                self.azimuth = math.atan2( data[0], data[2] )
+                self.azimuth = math.atan2( data[2], data[0] )
 
             if topic == '/husky/data/encoders':
                 self.time = data[0]
@@ -76,13 +76,14 @@ class HuskyROS:
         self.speed = speed
         self.angularSpeed = angularSpeed
 
-    def goStraight( self, dist ):
+    def goStraight( self, dist, maxSpeed=0.1 ):
         "go forward for given distance"
+        print "GO!", dist, maxSpeed
         assert self.enc != None
         prevEncL, prevEncR = self.enc
         startTime = self.time
         while ((self.enc[0]-prevEncL) + (self.enc[1]-prevEncR))/2.0 < dist:
-            self.setSpeedPxPa( 0.1, 0 )
+            self.setSpeedPxPa( maxSpeed, 0 )
             self.update()
         self.setSpeedPxPa( 0, 0 )
         self.update()
@@ -102,6 +103,16 @@ class HuskyROS:
         self.setSpeedPxPa( 0, 0 )
         self.update()
         print "TIME", self.time-startTime, math.degrees( normalizeAnglePIPI(self.imu - prevImu) )
+
+
+    def turnToAzimuth( self, azimuth ):
+        print "AZI", math.degrees( self.azimuth ), math.degrees( azimuth )
+        while abs( normalizeAnglePIPI(self.azimuth - azimuth) ) > math.radians(2):
+            self.setSpeedPxPa( 0.0, 0.3 )
+            self.update()
+        self.setSpeedPxPa( 0, 0 )
+        self.update()
+
 
     def wait( self, seconds ):
         startTime = self.time
@@ -131,13 +142,19 @@ def test( robot ):
 def test2( robot ):
     VEL_SCALE = 0.5
     ROT_SCALE = 1.0 
+    prevPressed = False
+    prevEnc = robot.enc[:]
     while True:
         robot.update()
+        if not prevPressed and robot.greenPressed:
+            print robot.azimuth, prevEnc[0] - robot.enc[0], prevEnc[1] - robot.enc[1]
+            prevEnc = robot.enc[:]
         if robot.greenPressed:
-            robot.speed = -VEL_SCALE*robot.joyAxis[1]
-            robot.angularSpeed = -ROT_SCALE*robot.joyAxis[0]
+            robot.speed = VEL_SCALE*robot.joyAxis[1]
+            robot.angularSpeed = ROT_SCALE*robot.joyAxis[0]
         else:
             robot.speed,robot.angularSpeed = 0,0
+        prevPressed = robot.greenPressed
         if robot.redPressed:
             print "RED"
             break
@@ -162,9 +179,26 @@ def test4( robot ):
     robot.wait( 3 )
     for i in xrange(20):
         robot.wait( 2 )
+        print math.degrees(robot.azimuth)
         robot.turn( math.radians(20) )
     robot.wait( 3 )
 
+def test5( robot ):
+    for i in xrange(5):
+        robot.turnToAzimuth( math.radians(0.0) )
+        robot.goStraight( 1.0 )
+        robot.turnToAzimuth( math.radians(180.0) )
+        robot.goStraight( 1.0 )
+
+
+def test6( robot ):
+    for azi,dist in [ (-1.13311392218, 11.091),
+            (0.175614628559, 3.584),
+            (1.62315635666, 11.842),
+            (-2.77704236902, 4.407),
+            (-1.14243399246, 1.0)]: # unknown
+        robot.turnToAzimuth( azi )
+        robot.goStraight( dist, maxSpeed=0.3 )
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or (len(sys.argv)==2 and "meta" not in sys.argv[1]):
@@ -180,7 +214,7 @@ if __name__ == "__main__":
     else:
         setIPs( sys.argv[1], 'http://'+sys.argv[2]+':11311' )
     robot = HuskyROS( metalog=metalog, assertWrite=assertWrite )
-    test4( robot )
+    test6( robot )
 
 #-------------------------------------------------------------------
 # vim: expandtab sw=4 ts=4 
