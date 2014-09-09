@@ -16,10 +16,10 @@ class LogEnd(Exception):
 
 class LogIt():
   "Log communication via serial com"
-  def __init__( self, com ):
+  def __init__( self, com, prefix='logs/hy' ):
     self._com = com
     self._logFile = None
-    self.relog( 'logs/hy' )
+    self.relog( prefix )
 
   def relog( self, prefix ):
     dt = datetime.datetime.now()
@@ -28,7 +28,7 @@ class LogIt():
     print "LogIt:", filename
     return filename
 
-  def read( self, numChars ):
+  def read( self, numChars=1 ):
     s = self._com.read( numChars )
     for ch in s:
       self._logFile.write( chr(0x01) )
@@ -42,6 +42,9 @@ class LogIt():
       self._logFile.write( ch )
     self._logFile.flush()
     self._com.write( chars ) 
+
+  def close( self ):
+    pass # dummy
 
 #-------------------------------------------------------------------
 
