@@ -2,7 +2,7 @@
 """
   ROS wrapper for Husky
   usage:
-     ./husky.py [<metalog file> [F]|<IP node> <IP master>]
+     ./huskyros.py [<metalog file> [F]|<IP node> <IP master>]
 """
 
 from node import NodeROS, setIPs
