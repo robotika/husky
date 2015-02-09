@@ -21,7 +21,13 @@ def view( filename ):
     assert atomSize in [2,3], atomSize
     if atomSize == 2:
         # depth
-        img = np.array( [x/20 for x in struct.unpack("<" + "H"*(240*320), data)], dtype=np.uint8 )
+        arr = struct.unpack("<" + "H"*(240*320), data)
+        depth = np.array( arr, dtype=np.uint16 )
+        depth.shape = (240, 320, 1)
+        centerArea = depth[120-40:120+40, 160-40:160+40]
+        mask = centerArea > 0
+        print "Min dist", centerArea[mask].min()/1000.0
+        img = np.array( [x/20 for x in arr], dtype=np.uint8 )
         img.shape = (240, 320, 1)
     else:
         # color
