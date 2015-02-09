@@ -18,7 +18,9 @@ def normalizeAnglePIPI( angle ):
 
 
 class HuskyROS:
-    def __init__( self, metalog=None, assertWrite=True ):
+    def __init__( self, metalog=None, assertWrite=True, ipPair=None ):
+        if ipPair is not None:
+            setIPs( *ipPair )
         self.node = NodeROS( 
             subscribe=['/imu/data', '/imu/mag', '/imu/rpy', '/imu/temperature',
                 '/husky/data/encoders', 
