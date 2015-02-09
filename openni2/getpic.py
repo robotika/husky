@@ -9,6 +9,7 @@ from primesense import openni2
 import gzip
 import sys
 import datetime
+import struct
 
 class Sensor3D:
     def __init__( self ):
@@ -21,7 +22,7 @@ class Sensor3D:
     def save( self, prefix, data ):
         f = gzip.open( prefix + datetime.datetime.now().strftime("_%y%m%d_%H%M%S") + "_%03d" % self.index + \
                 ".bin.gz", "wb" )
-        f.write( data )
+        f.write( "".join([struct.pack("H", x) for x in data]) )
         f.close()
         self.index += 1
 
