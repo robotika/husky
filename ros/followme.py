@@ -1,3 +1,4 @@
+#!/usr/bin/python
 """
   Follow Me with Husky (ROS) and PrimeSense sensor (direct OpenNI2)
   usage:
@@ -30,10 +31,12 @@ class ScannerThread( Thread ):
 
 
 def followme( metalog, assertWrite, ipPair ):
+    print "Follow Me"
     robot = HuskyROS( metalog=metalog, assertWrite=assertWrite, ipPair=ipPair )
+    print "started"
     if metalog is None:
         scanner = ScannerThread()
-        scaner.start()
+        scanner.start()
     robot.goStraight( 1.0 )
     if metalog is None:
         scanner.requestStop()
