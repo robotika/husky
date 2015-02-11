@@ -10,8 +10,9 @@ import sys
 import cv2
 import numpy as np
 import struct
+import os
 
-def view( filename ):
+def view( filename, pause=0 ):
     if filename.endswith(".gz"):
         data = gzip.open( filename, "rb" ).read()
     else:
@@ -37,14 +38,23 @@ def view( filename ):
         img = cv2.cvtColor( img, cv2.COLOR_BGR2RGB )
     img = cv2.flip( img, 1 )
     cv2.imshow("image",img)
-    cv2.waitKey()
+    ch = cv2.waitKey( pause )
+    if ch == ord('s'):
+        cv2.imwrite( "tmp.jpg", img )
+        print "Image saved"
     
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print __doc__
         sys.exit(2)
-    view( sys.argv[1] )
+    if ".bin" in sys.argv[1]:
+        view( sys.argv[1] )
+    else:
+        for filename in os.listdir( sys.argv[1] ):
+            if ".bin" in filename:
+                print filename
+                view( os.path.join( sys.argv[1], filename ), pause=100 )
 
 # vim: expandtab sw=4 ts=4 
 
