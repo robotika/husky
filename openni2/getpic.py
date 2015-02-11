@@ -18,6 +18,8 @@ class Sensor3D:
         self.depth_stream = self.dev.create_depth_stream()
         self.col = self.dev.create_color_stream()
         self.index = 0
+        self.depth_stream.start()
+        self.col.start()
 
     def save( self, prefix, data ):
         f = gzip.open( prefix + datetime.datetime.now().strftime("_%y%m%d_%H%M%S") + "_%03d" % self.index + \
@@ -27,25 +29,21 @@ class Sensor3D:
         self.index += 1
 
     def readDepth( self ):
-        self.depth_stream.start()
         frame = self.depth_stream.read_frame()
         frame_data = frame.get_buffer_as_uint16()
-        self.depth_stream.stop()
         return frame_data
 
     def readColor( self ):
-        self.col.start()
         frame = self.col.read_frame()
         print frame.width, frame.height
-        self.col.stop()
         frame_data = frame.get_buffer_as_uint16()
         return frame_data
 
 def test( num ):
     s = Sensor3D()
     for i in xrange( num ):
-        s.save( "depth", s.readDepth() )
-        s.save( "pic", s.readColor() )
+        s.save( "logs/depth", s.readDepth() )
+        s.save( "logs/pic", s.readColor() )
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
