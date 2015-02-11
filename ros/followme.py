@@ -11,7 +11,8 @@ from huskyros import HuskyROS
 
 sys.path.append( ".."+os.sep+"openni2") 
 from getpic import Sensor3D
-
+import numpy as np
+import datetime
 
 class ScannerThread( Thread ):
     def __init__( self ):
@@ -20,11 +21,22 @@ class ScannerThread( Thread ):
         self.shouldIRun = Event()
         self.shouldIRun.set()
         self.sensor = Sensor3D() 
+        self.minDist = None # i.e. unknown
 
     def run( self ):
         while self.shouldIRun.isSet(): 
-            self.sensor.save( "depth", self.sensor.readDepth() )
-            self.sensor.save( "pic", self.sensor.readColor() ) 
+            arr = self.sensor.readDepth()
+            depth = np.array( arr, dtype=np.uint16 )
+            depth.shape = (240, 320, 1)
+            centerArea = depth[120-40:120+40, 160-40:160+40]
+            mask = centerArea > 0
+            if centerArea.max() == 0:
+                self.minDist = 10.0
+            else:
+                self.minDist = centerArea[mask].min()/1000.0
+            print "Min dist", self.minDist
+            self.sensor.save( "logs/depth", arr )
+            self.sensor.save( "logs/pic", self.sensor.readColor() ) 
 
     def requestStop(self):
         self.shouldIRun.clear() 
@@ -37,7 +49,30 @@ def followme( metalog, assertWrite, ipPair ):
     if metalog is None:
         scanner = ScannerThread()
         scanner.start()
-    robot.goStraight( 1.0 )
+    maxSpeed = 0.1
+    safeDist = 1.0
+    index = 0
+    prev = None
+    log = open( datetime.datetime.now().strftime("logs/scanner_%y%m%d_%H%M%S.log"), "w" )
+    while True:
+        if scanner.minDist != prev:
+            prev = scanner.minDist
+            log.write("%d\n" % index )
+            log.write("%.3f\n" % prev )
+            log.flush()
+            index = 0
+        index += 1
+
+        if prev is None or prev < safeDist:
+            robot.setSpeedPxPa( 0, 0 )
+        else:
+            robot.setSpeedPxPa( maxSpeed, 0 )
+        robot.update()
+    robot.setSpeedPxPa( 0, 0 )
+    robot.update()
+    log.write("%d\n" % index )
+    log.close()
+
     if metalog is None:
         scanner.requestStop()
         scanner.join()
