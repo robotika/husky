@@ -26,7 +26,8 @@ def view( filename ):
         depth.shape = (240, 320, 1)
         centerArea = depth[120-40:120+40, 160-40:160+40]
         mask = centerArea > 0
-        print "Min dist", centerArea[mask].min()/1000.0
+        if centerArea.max() > 0:
+            print "Min dist", centerArea[mask].min()/1000.0
         img = np.array( [x/20 for x in arr], dtype=np.uint8 )
         img.shape = (240, 320, 1)
     else:
