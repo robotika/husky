@@ -67,12 +67,13 @@ class MyXMLRPCServer( Thread ):
 
 
 class NodeROS:
-    def __init__( self, subscribe=[], publish=[], heartbeat=None, metalog=None, assertWrite=True ):
+    def __init__( self, subscribe=[], publish=[], heartbeat=None, filename=None, replay=False, assertWrite=True ):
         self.callerId = '/node_test_ros' # TODO combination host/port?
         self.heartbeat = heartbeat
-        if metalog == None:
-            dt = datetime.datetime.now()
-            filename = "meta" + dt.strftime("%y%m%d_%H%M%S.log") 
+        if not replay:
+            if filename is None:
+                dt = datetime.datetime.now()
+                filename = "meta" + dt.strftime("%y%m%d_%H%M%S.log") 
             self.metalog = open( filename, "wb" )
             self.callerApi = "http://"+NODE_HOST+":%d" % NODE_PORT
             print "STARTING", self.callerId, "at", self.callerApi
@@ -80,8 +81,8 @@ class NodeROS:
             self.master = ServerProxy( ROS_MASTER_URI )
         else:
             self.callerApi = None # replay log file(s)
-            self.metalog = open( metalog, "rb" )
-            self.metalogDir = os.path.dirname( metalog )
+            self.metalog = open( filename, "rb" )
+            self.metalogDir = os.path.dirname( filename )
 
         self.sockets = {}
         for topic in subscribe:

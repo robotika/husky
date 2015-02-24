@@ -18,7 +18,7 @@ def normalizeAnglePIPI( angle ):
 
 
 class HuskyROS:
-    def __init__( self, metalog=None, assertWrite=True, ipPair=None ):
+    def __init__( self, filename=None, replay=False, assertWrite=True, ipPair=None ):
         if ipPair is not None:
             setIPs( *ipPair )
         self.node = NodeROS( 
@@ -30,7 +30,7 @@ class HuskyROS:
                 '/husky/data/system_status'], 
             publish=['/husky/cmd_vel'],
             heartbeat='/husky/data/encoders',                
-            metalog=metalog, assertWrite=assertWrite )
+            filename=filename, replay=replay, assertWrite=assertWrite )
         self.speed = 0.0
         self.angularSpeed = 0.0
         self.enc = None # unknown
@@ -207,15 +207,15 @@ if __name__ == "__main__":
         print __doc__
         sys.exit(1)
 
-    metalog = None
+    filename = None
     assertWrite = True
     if "meta" in sys.argv[1]:
-        metalog = sys.argv[1]
+        filename = sys.argv[1]
         if len(sys.argv) > 2 and sys.argv[2] == 'F':
             assertWrite = False
     else:
         setIPs( sys.argv[1], 'http://'+sys.argv[2]+':11311' )
-    robot = HuskyROS( metalog=metalog, assertWrite=assertWrite )
+    robot = HuskyROS( filename=filename, assertWrite=assertWrite )
     test6( robot )
 
 #-------------------------------------------------------------------
