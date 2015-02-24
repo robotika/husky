@@ -2,7 +2,7 @@
 """
   View depth/color data from PrimeSense 3D sensor
   usage:
-       ./viewer.py <filename>
+       ./viewer.py <filename> [<output video>]
 """
 
 import gzip
@@ -35,13 +35,14 @@ def view( filename, pause=0 ):
         print pt, centerArea[i/320,i%320]
         img = np.array( [x/20 for x in arr], dtype=np.uint8 )
         img.shape = (240, 320, 1)
+        img = cv2.cvtColor( img, cv2.COLOR_GRAY2RGB )
     else:
         # color
         img = np.array( [ord(x) for x in data], dtype=np.uint8 )
         img.shape = (240, 320, 3)
         img = cv2.cvtColor( img, cv2.COLOR_BGR2RGB )
     if pt:
-        cv2.circle( img, center=(pt[1],pt[0]), radius=10, color=(255,0,0) )
+        cv2.circle( img, center=(pt[1],pt[0]), radius=10, color=(0,0,255) )
     img = cv2.flip( img, 1 )
     cv2.imshow("image",img)
     ch = cv2.waitKey( pause )
@@ -50,6 +51,7 @@ def view( filename, pause=0 ):
         print "Image saved"
     if ch == 27:
         sys.exit(0)
+    return img
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -58,10 +60,17 @@ if __name__ == "__main__":
     if ".bin" in sys.argv[1]:
         view( sys.argv[1] )
     else:
+        writer = None
+        if len(sys.argv) > 2:
+            writer = cv2.VideoWriter( sys.argv[2], cv2.cv.CV_FOURCC('F', 'M', 'P', '4'), 5, (320,240) ) 
         for filename in os.listdir( sys.argv[1] ):
             if ".bin" in filename:
                 print filename
-                view( os.path.join( sys.argv[1], filename ), pause=100 )
+                img = view( os.path.join( sys.argv[1], filename ), pause=100 )
+                if writer:
+                    writer.write( img )
+        if writer:
+            writer.release()
 
 # vim: expandtab sw=4 ts=4 
 
