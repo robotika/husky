@@ -26,13 +26,13 @@ def view( filename, pause=0 ):
         arr = struct.unpack("<" + "H"*(240*320), data)
         depth = np.array( arr, dtype=np.uint16 )
         depth.shape = (240, 320, 1)
-        centerArea = depth[120-40:120+40, 160-40:160+40]
+        centerArea = depth[120-40:120+40, :]
         mask = centerArea == 0
         centerArea[mask] = 10000
         print "Min dist", centerArea.min()/1000.0, 
         i = centerArea.argmin()
-        pt = (120-40 + i / 80, 160-40 + i % 80 )
-        print pt, centerArea[i/80,i%80]
+        pt = (120-40 + i / 320, i % 320 )
+        print pt, centerArea[i/320,i%320]
         img = np.array( [x/20 for x in arr], dtype=np.uint8 )
         img.shape = (240, 320, 1)
     else:

@@ -18,18 +18,19 @@ import datetime
 
 import struct
 import gzip
+import math
 
 # apyros should be common lib - now in katarina code
 from apyros.sourcelogger import SourceLogger
 from apyros.metalog import MetaLog, disableAsserts
 
 def processDepth( depth ):
-    centerArea = depth[120-40:120+40, 160-40:160+40]
+    centerArea = depth[120-40:120+40, :]
     mask = centerArea == 0
     centerArea[mask] = 10000
     minDist = centerArea.min()
     i = centerArea.argmin()
-    return minDist, 160-40+i%80, 120-40+i/80
+    return minDist, i%320, 120-40+i/320
 
 
 class ScannerThread( Thread ):
@@ -79,22 +80,27 @@ def followme( metalog, assertWrite, ipPair ):
         scannerFn = SourceLogger( sourceGet=None, filename=metalog.getLog("scanner") ).get
     maxSpeed = 0.5
     safeDist = 0.5
+    limitDist = 1.5
     index = 0
     prev = None
+    turn = 0.0
+    personDetected = False
     while True:
         minDist = scannerFn()
         if minDist is not None:
             prev = minDist[0]/1000.0
-            print prev
+            turnDiff = 160-minDist[1]
+            turn = -math.radians(turnDiff)/4.0
+            print prev, turnDiff
 
         if prev is None or prev < safeDist:
-            robot.setSpeedPxPa( 0, 0 )
+            robot.setSpeedPxPa( 0, turn/4 )
         elif prev < safeDist*2:
-            robot.setSpeedPxPa( maxSpeed/2, 0 )
-        elif prev < safeDist*3:
-            robot.setSpeedPxPa( maxSpeed, 0 )
+            robot.setSpeedPxPa( maxSpeed*(prev-safeDist)/safeDist, turn/2 )
+        elif prev < limitDist:
+            robot.setSpeedPxPa( maxSpeed, turn )
         else:
-            robot.setSpeedPxPa( 2*maxSpeed, 0 )
+            robot.setSpeedPxPa( 0, 0 )
         robot.update()
     robot.setSpeedPxPa( 0, 0 )
     robot.update()
