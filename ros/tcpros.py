@@ -28,7 +28,7 @@ class LoggedStream:
         self.writeFn = writeFn
         dt = datetime.datetime.now()
         self.filename = prefix + dt.strftime("%y%m%d_%H%M%S.log") 
-        self.logFile = open( self.filename, "wb" )
+        self.logFile = open( "logs/" + self.filename, "wb" )
         print "LogIt:", self.filename 
         self.buf = ""
     
