@@ -93,6 +93,7 @@ def go( metalog, assertWrite, ipPair ):
     prev = None
     obstacleDir = 0.0
     personDetected = False
+    pauseCount = 0 # TODO use time instead
     while True:
         minDist = scannerFn()
         scanner.saveImages = not robot.emergencyStopPressed
@@ -102,7 +103,11 @@ def go( metalog, assertWrite, ipPair ):
             obstacleDir = -math.radians(turnDiff)/4.0 # TODO calibration via FOV
             print prev, turnDiff, robot.power, robot.emergencyStopPressed
 
-        if prev is None or prev < safeDist or robot.emergencyStopPressed:
+        if robot.emergencyStopPressed:
+            pauseCount = 10
+        else:
+            pauseCount = max(0, pauseCount-1)
+        if prev is None or prev < safeDist or pauseCount > 0:
             robot.setSpeedPxPa( 0, 0 )
         elif prev < safeDist*2:
             # turn in place
