@@ -39,6 +39,7 @@ class HuskyROS:
         self.imu = None
         self.mag = None
         self.azimuth = None
+        self.emergencyStopPressed = None
         self.greenPressed = None
         self.redPressed = None
         self.joyAxis = (0,0, 0,0, 0,0)
@@ -70,13 +71,13 @@ class HuskyROS:
             if topic == '/imu/mag':
                 self.mag = data[:]
                 self.azimuth = math.atan2( data[2], data[0] )
-
             if topic == '/husky/data/encoders':
                 self.time = data[0]
                 self.enc = data[1][0], data[2][0] # only distance traveled
-
             if topic == '/husky/data/power_status':
                 self.power = data
+            if topic == '/husky/data/safety_status':
+                self.emergencyStopPressed = data[1] # ignored 16 unknown bits in data[0]
 
     def setSpeedPxPa( self, speed, angularSpeed ):
         self.speed = speed
