@@ -92,7 +92,7 @@ def go( metalog, assertWrite, ipPair ):
             prev = minDist[0]/1000.0
             turnDiff = 160-minDist[1] # only flip
             obstacleDir = -math.radians(turnDiff)/4.0 # TODO calibration via FOV
-            print prev, turnDiff
+            print prev, turnDiff, robot.power
 
         if prev is None or prev < safeDist:
             robot.setSpeedPxPa( 0, 0 )

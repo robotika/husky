@@ -35,6 +35,7 @@ class HuskyROS:
         self.angularSpeed = 0.0
         self.enc = None # unknown
         self.time = None
+        self.power = None
         self.imu = None
         self.mag = None
         self.azimuth = None
@@ -73,6 +74,9 @@ class HuskyROS:
             if topic == '/husky/data/encoders':
                 self.time = data[0]
                 self.enc = data[1][0], data[2][0] # only distance traveled
+
+            if topic == '/husky/data/power_status':
+                self.power = data
 
     def setSpeedPxPa( self, speed, angularSpeed ):
         self.speed = speed
