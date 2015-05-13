@@ -34,6 +34,9 @@ def processDepth( depth ):
     return minDist, i%320, 120-40+i/320
 
 
+class DummyScanner:
+    pass
+
 class ScannerThread( Thread ):
     def __init__( self ):
         Thread.__init__(self)
@@ -43,19 +46,22 @@ class ScannerThread( Thread ):
         self.lock = Lock()
         self.sensor = Sensor3D() 
         self.minDist = None # i.e. unknown
+        self.saveImages = True
 
     def run( self ):
         while self.shouldIRun.isSet(): 
             arr = self.sensor.readDepth()
-            self.sensor.save( "logs/depth", arr )
+            if self.saveImages:
+                self.sensor.save( "logs/depth", arr )
             depth = np.array( arr, dtype=np.uint16 )
             depth.shape = (240, 320, 1)
             tmp = processDepth( depth )
             self.lock.acquire()
             self.minDist = tmp
             self.lock.release()        
-            print "Min dist", self.minDist
-            self.sensor.save( "logs/pic", self.sensor.readColor() ) 
+            if self.saveImages:
+                print "Min dist", self.minDist
+                self.sensor.save( "logs/pic", self.sensor.readColor() ) 
 
     def requestStop(self):
         self.shouldIRun.clear() 
@@ -77,6 +83,7 @@ def go( metalog, assertWrite, ipPair ):
         scanner.start()
         scannerFn = SourceLogger( sourceGet=scanner.get, filename=metalog.getLog("scanner") ).get
     else:
+        scanner = DummyScanner() # only for access to scanner saveImages
         robot = HuskyROS( filename=metalog.getLog("node"), replay=True, assertWrite=assertWrite, ipPair=ipPair ) # TODO move assert to metalog
         scannerFn = SourceLogger( sourceGet=None, filename=metalog.getLog("scanner") ).get
     maxSpeed = 0.25
@@ -88,13 +95,14 @@ def go( metalog, assertWrite, ipPair ):
     personDetected = False
     while True:
         minDist = scannerFn()
+        scanner.saveImages = not robot.emergencyStopPressed
         if minDist is not None:
             prev = minDist[0]/1000.0
             turnDiff = 160-minDist[1] # only flip
             obstacleDir = -math.radians(turnDiff)/4.0 # TODO calibration via FOV
             print prev, turnDiff, robot.power, robot.emergencyStopPressed
 
-        if prev is None or prev < safeDist:
+        if prev is None or prev < safeDist or robot.emergencyStopPressed:
             robot.setSpeedPxPa( 0, 0 )
         elif prev < safeDist*2:
             # turn in place
