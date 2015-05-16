@@ -108,7 +108,7 @@ class NodeROS:
     def requestTopic( self, topic ):
         code, statusMessage, publishers = self.master.registerSubscriber(self.callerId, topic, lookupTopicType(topic)[0], self.callerApi)
         assert code == 1, (code, statusMessage)
-        assert len(publishers) == 1, publishers # i.e. fails if publisher is not ready now
+        assert len(publishers) == 1, (topic, publishers) # i.e. fails if publisher is not ready now
         print publishers
         publisher = ServerProxy( publishers[0] )
         code, statusMessage, protocolParams = publisher.requestTopic( self.callerId, topic, [["TCPROS"]] )
