@@ -25,7 +25,7 @@ for i in range(1, 3):
   time.sleep(0.5)
 
 while True:
-  horizon.set_differential_output(30, 30)
+  horizon.set_differential_output(30, 33)
   time.sleep(0.5)
 
 time.sleep(1)
