@@ -146,6 +146,17 @@ def testConfig( com ):
     robot.update()
 
 
+def testRR2015( com ):
+  "Robotem Rovne 2015"
+  robot = Husky( com )
+  robot.cmdSpeed = (10000, 10000)
+  while True:
+    robot.update()
+  robot.cmdSpeed = (0, 0)
+  robot.update()
+
+
+
 if __name__ == "__main__":
   if len(sys.argv) < 2:
     print __doc__
@@ -166,5 +177,5 @@ if __name__ == "__main__":
       com = ReplayLog( filename, assertWrite=replayAssert )
   else:
     com = LogIt( serial.Serial( '/dev/ttyUSB1', 115200 ) )
-  testConfig( com )
+  testRR2015( com )
 
