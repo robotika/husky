@@ -18,9 +18,9 @@ REQ_FIRMWARE_INFO = 0x4003
 REQ_MAX_SPEED = 0x4210
 REQ_MAX_ACCEL = 0x4211
 REQ_GPIO = 0x4301
-REQ_PLATFORM_ORIENTATION = 0x4600   # not supported?
-REQ_PLATFORM_MAGNETOMETERS = 0x4606 # not supported?
-
+REQ_ENCODERS = 0x4800
+REQ_SYSTEM_STATUS = 0x4004
+REQ_SAFETY_SYSTEM_STATUS = 0x4010
 
 SET_DIFFERENTIAL_OUTPUT = 0x0202
 
@@ -69,12 +69,13 @@ class Husky:
     return timestamp, msgType, ret[9:-2]
 
   def config( self ):
-    self.sendPacket( REQ_PLATFORM_MAGNETOMETERS, data=struct.pack("h", 10 ) ) # at 10Hz    
+    self.sendPacket( REQ_ENCODERS, data=struct.pack("h", 10 ) ) # at 10Hz    
     self.sendPacket( REQ_FIRMWARE_INFO, data=struct.pack("h", 0 ) ) # once
     self.sendPacket( REQ_MAX_SPEED, data=struct.pack("h", 0 ) ) # once
     self.sendPacket( REQ_MAX_ACCEL, data=struct.pack("h", 0 ) ) # once
     self.sendPacket( REQ_GPIO, data=struct.pack("h", 0 ) ) # once
-    self.sendPacket( REQ_PLATFORM_ORIENTATION, data=struct.pack("h", 10 ) ) # 10Hz
+    self.sendPacket( REQ_SAFETY_SYSTEM_STATUS, data=struct.pack("h", 10 ) ) # 10Hz
+    self.sendPacket( REQ_SYSTEM_STATUS, data=struct.pack("h", 1 ) ) # 1Hz
 
 
   def update( self ):
@@ -131,9 +132,15 @@ def testMotion( com ):
   "slow motion for 25cm (after reseting encoders)"
   robot = Husky( com )
   robot.cmdSpeed = (1000, 1000)
+  for i in xrange(100):
+    robot.update()
+    if robot.enc:
+      break
+  assert robot.enc
+  startEnc = robot.enc[1]
   for i in xrange(1000):
     robot.update()
-    if robot.enc and robot.enc[1] > 250:
+    if robot.enc and robot.enc[1]-startEnc > 250:
       break
   robot.cmdSpeed = (0, 0)
   robot.update()
@@ -177,5 +184,5 @@ if __name__ == "__main__":
       com = ReplayLog( filename, assertWrite=replayAssert )
   else:
     com = LogIt( serial.Serial( '/dev/ttyUSB1', 115200 ) )
-  testRR2015( com )
+  testMotion( com )
 
