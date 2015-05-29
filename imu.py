@@ -35,6 +35,8 @@ class IMU:
                     data += self.com.read( 4 * batchLen ) # number of 4-bytes registers
             else:
                 data += self.com.read( 4 ) # single register
+        chsum = sum([ord(x) for x in data[:-2]])
+        assert struct.unpack(">H",data[-2:])[0] == chsum, (data[-2:], hex(chsum))
         return data
         
 
