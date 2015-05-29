@@ -12,9 +12,17 @@ import serial
 import struct
 from logit import *
 
+# page 42
+UM6_GYRO_RAW_XY = 0x56
+UM6_GYRO_PROC_XY = 0x5e
+UM6_MAG_PROC_XY = 0x60
+UM6_EULER_PHI_THETA = 0x62
+UM6_TEMPERATURE = 0x76
+
 class IMU:
     def __init__( self, com ):
         self.com = com
+        self.temperature = None
         self.config()
 
     def sendPacket( self, messageType, data = "" ):
@@ -37,6 +45,11 @@ class IMU:
                 data += self.com.read( 4 ) # single register
         chsum = sum([ord(x) for x in data[:-2]])
         assert struct.unpack(">H",data[-2:])[0] == chsum, (data[-2:], hex(chsum))
+        addr = ord(data[4])
+        assert addr in [0x76, 0x56, 0x5c, 0x5e, 0x60, 0x62], hex(addr) # visible in current dump
+        if addr == UM6_TEMPERATURE:
+            self.temperature = struct.unpack_from(">f", data, 5)[0]
+            print self.temperature
         return data
         
 
