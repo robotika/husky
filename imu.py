@@ -23,7 +23,18 @@ class IMU:
     def readPacket( self ):
         data = self.com.read(7) # minimal size
         while not data.startswith( "snp" ):
+            print ord(data[0])
             data = data[1:] + self.com.read(1)
+        pt = ord(data[3])
+        hasData = pt & 0x80
+        isBatch = pt & 0x40
+        batchLen = (pt >> 2) & 0x0F
+        if hasData:
+            if isBatch:
+                if batchLen > 0:
+                    data += self.com.read( 4 * batchLen ) # number of 4-bytes registers
+            else:
+                data += self.com.read( 4 ) # single register
         return data
         
 
