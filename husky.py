@@ -24,13 +24,16 @@ REQ_SAFETY_SYSTEM_STATUS = 0x4010
 
 SET_DIFFERENTIAL_OUTPUT = 0x0202
 
+HUSKY_WIDTH = 0.8 # guessed for angular speed
 
 class Husky:
   def __init__( self, com ):
     self.com = com
     self.timestamp = 0
     self.cmdSpeed = (0, 0)
+    self.time = None
     self.enc = None
+    self.emergencyStopPressed = None
     self.config()
 
   def sendPacket( self, messageType, data = "" ):
@@ -49,7 +52,7 @@ class Husky:
     self.timestamp += 1
     self.com.write( packet )
 
-  def readPacket( self ):
+  def _readPacket( self ):
     b = self.com.read(1)
     while b != chr(0xAA):
       print "skipping", hex(ord(b))
@@ -68,6 +71,14 @@ class Husky:
     assert stx == 0x55, stx
     return timestamp, msgType, ret[9:-2]
 
+  def readPacket( self ):
+    "wrap communication asserts"
+    while True:
+      try:
+        return self._readPacket()
+      except AssertionError, e:
+        print e
+
   def config( self ):
     self.sendPacket( REQ_ENCODERS, data=struct.pack("h", 10 ) ) # at 10Hz    
     self.sendPacket( REQ_FIRMWARE_INFO, data=struct.pack("h", 0 ) ) # once
@@ -82,16 +93,44 @@ class Husky:
     self.sendPacket( SET_DIFFERENTIAL_OUTPUT, data=struct.pack("hh", self.cmdSpeed[0], self.cmdSpeed[1]) )
     for i in xrange(200):
       timestamp, msgType, data = self.readPacket()
-      print hex(msgType)
+#      print hex(msgType)
       if msgType & 0xF000 == 0x4000: # confirmations
         print hex(msgType), [hex(ord(x)) for x in data]
       if msgType in [0x8210, 0x8211, 0x8003 ]:
         print hex(msgType), [hex(ord(x)) for x in data]
+      if msgType == 0x8004:
+        systemStatusData = struct.unpack( "=IBhhhBhhhBhhhh", data ) # expected 3 voltage/current readings, 4x temperature
+#        print systemStatusData
+        self.time = systemStatusData[0]/1000.0 # uptime in milisec
+      if msgType == 0x8010:
+        safetySystemStatusData = struct.unpack( "=H", data )
+        self.emergencyStopPressed = ( safetySystemStatusData[0] != 0 )
+
       if msgType == 0x8800: # Encoder data
         self.enc = struct.unpack( "=Biihh", data ) # expected 2 encoders - position and speed
 #        print "ENC", self.enc
         break
 
+  def setSpeedPxPa( self, speed, angularSpeed ):
+    diff = angularSpeed * HUSKY_WIDTH/2.0
+    self.cmdSpeed = (int((speed-diff)*10000), int((speed+diff)*10000))
+
+  def goStraight( self, dist, maxSpeed=0.3, stop=True ):
+    if self.enc is None:    
+      for i in xrange(100):
+        self.update()
+        if self.enc:
+          break
+    assert self.enc
+    assert self.enc[0] == 2, self.enc
+    startEnc = (self.enc[1]+self.enc[2])/2
+    self.setSpeedPxPa( maxSpeed, 0 )
+    while (self.enc[1]+self.enc[2])/2 - startEnc < dist*1000:
+      print self.emergencyStopPressed, self.enc
+      self.update()
+    if stop:
+      self.cmdSpeed = (0, 0)
+      self.update()
 
 def main0( com ):
   robot = Husky( com )
@@ -163,6 +202,10 @@ def testRR2015( com ):
   robot.update()
 
 
+def testFieldDemo( com ):
+  robot = Husky( com )
+  robot.goStraight( 0.25, maxSpeed = 0.1 )
+
 
 if __name__ == "__main__":
   if len(sys.argv) < 2:
@@ -184,5 +227,5 @@ if __name__ == "__main__":
       com = ReplayLog( filename, assertWrite=replayAssert )
   else:
     com = LogIt( serial.Serial( '/dev/ttyUSB1', 115200 ) )
-  testMotion( com )
+  testFieldDemo( com )
 
