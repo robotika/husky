@@ -22,13 +22,13 @@ class HuskyROS:
         if ipPair is not None:
             setIPs( *ipPair )
         self.node = NodeROS( 
-            subscribe=['/imu/data', '/imu/mag', '/imu/rpy', '/imu/temperature',
-                '/husky/data/encoders', 
-                '/husky/data/power_status',
-                '/husky/data/safety_status', 
-                '/joy', 
-                '/husky/data/system_status'], 
-            publish=['/husky/cmd_vel'],
+            subscribe=[], #'/imu/data', '/imu/mag', '/imu/rpy', '/imu/temperature',
+#                '/husky/data/encoders', 
+#                '/husky/data/power_status',
+#                '/husky/data/safety_status', 
+#                '/joy', 
+#                '/husky/data/system_status'], 
+            publish=['/X1/cmd_vel'],
             heartbeat='/husky/data/encoders',                
             filename=filename, replay=replay, assertWrite=assertWrite )
         self.speed = 0.0

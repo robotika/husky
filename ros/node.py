@@ -200,11 +200,18 @@ class NodeROS:
         return ret
 
 
-def testNode1( metalog ):
-    node = NodeROS( subscribe=['/hello'], metalog=metalog )
+def testNode0( metalog ):
+    node = NodeROS(subscribe=['/X1/cmd_vel'])
     node.update()
 
-def testNode( metalog ):
+def testNode(metalog):
+    node = NodeROS(subscribe=[], publish=['/X1/cmd_vel'])
+    for i in xrange(1000):
+        node.cmdList.append(('/X1/cmd_vel', (-0.5, 0.0)))
+        node.update()
+        time.sleep(0.05)
+
+def testNode2( metalog ):
     node = NodeROS( subscribe=['/imu/data', '/husky/data/encoders', '/husky/data/power_status',
         '/husky/data/safety_status', '/joy', '/husky/data/system_status'], 
         publish=['/husky/cmd_vel'],
