@@ -11,6 +11,7 @@ import struct
 def lookupTopicType( topic ):
     tab = { 
             '/hello': ("std_msgs/String", '992ce8a1687cec8c8bd883ec73ca41d1', parseString, packString),
+            '/X1/imu/data': ("std_msgs/Imu", "6a62c6daae103f4ff57a132d6f95cec2", parseImu),
             '/imu/data': ("std_msgs/Imu", "6a62c6daae103f4ff57a132d6f95cec2", parseImu),
             '/imu/mag': ("geometry_msgs/Vector3Stamped", "7b324c7325e683bf02a9b14b01090ec7", parseVector3),
             '/imu/rpy': ("geometry_msgs/Vector3Stamped", "7b324c7325e683bf02a9b14b01090ec7", parseNone),
@@ -21,6 +22,7 @@ def lookupTopicType( topic ):
             '/husky/data/system_status': ('clearpath_base/SystemStatus', 'b24850c808eb727058fff35ba598006f', parseSystemStatus),
             '/husky/cmd_vel' : ('geometry_msgs/Twist', '9f195f881246fdfa2798d1d3eebca84a', parseNone, packCmdVel),
             '/X1/cmd_vel' : ('geometry_msgs/Twist', '9f195f881246fdfa2798d1d3eebca84a', parseNone, packCmdVel),
+            '/X1/light' : ('std_msgs/Bool', '9f195f881246fdfa2798d1d3eebca84a', parseNone, packBool),
             '/joy': ('sensor_msgs/Joy', '5a9ea5f83505693b71e785041e67a8bb', parseJoy),
           }       
     return tab[topic]
@@ -38,6 +40,8 @@ def parseString( data ):
 def packString( s ):
     return struct.pack("I", len(s)) + s
 
+def packBool( b ):
+    return struct.pack("B", b)
 
 def packCmdVel( speed, angularSpeed ):
     return struct.pack("dddddd", speed,0,0, 0,0,angularSpeed)

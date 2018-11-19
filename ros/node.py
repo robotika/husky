@@ -205,11 +205,22 @@ def testNode0( metalog ):
     node.update()
 
 def testNode(metalog):
+    # '/X1/imu/data'
     node = NodeROS(subscribe=[], publish=['/X1/cmd_vel'])
     for i in xrange(1000):
-        node.cmdList.append(('/X1/cmd_vel', (-0.5, 0.0)))
+        node.cmdList.append(('/X1/cmd_vel', (0.5, 0.0)))
         node.update()
         time.sleep(0.05)
+
+
+def testNodeLight(metalog):
+    node = NodeROS(subscribe=[], publish=['/X1/light'])
+    for i in xrange(10):
+#        node.cmdList.append(('/X1/light', (True,)))
+        node.cmdList.append(('/X1/light', (False,)))
+        node.update()
+        time.sleep(0.05)
+
 
 def testNode2( metalog ):
     node = NodeROS( subscribe=['/imu/data', '/husky/data/encoders', '/husky/data/power_status',
